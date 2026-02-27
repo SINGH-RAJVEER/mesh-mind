@@ -14,6 +14,7 @@
   "dependencies": {
     "@mindscribe/database": "workspace:*",
     "@mindscribe/types": "workspace:*",
+    "axios": "^1.13.5",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",

@@ -1,21 +1,28 @@
-import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom"
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import Register from "./components/Register"
-import Login from "./components/Login"
-import Dashboard from "./components/Dashboard"
-import ProtectedRoute from "./components/ProtectedRoute"
-import Toast from "./components/Toast"
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  Navigate,
+} from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import Register from "./components/Register";
+import Login from "./components/Login";
+import GitHubCallback from "./components/GitHubCallback";
+import Dashboard from "./components/Dashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Toast from "./components/Toast";
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient();
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
-        <div className="min-h-screen bg-gray-100">
+        <div className="min-h-screen bg-background">
           <Routes>
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/auth/github/callback" element={<GitHubCallback />} />
 
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />
@@ -27,7 +34,7 @@ function App() {
       </Router>
       <Toast />
     </QueryClientProvider>
-  )
+  );
 }
 
-export default App
+export default App;
