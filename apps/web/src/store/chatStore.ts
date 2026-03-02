@@ -1,56 +1,84 @@
-import { create } from "zustand";
+import { createSignal } from "solid-js";
 
-const useChatStore = create((set) => ({
-  chatHistory: [],
-  selectedConversation: null,
-  loading: false,
+interface Message {
+  id?: string;
+  user_message?: string;
+  bot_response?: string;
+}
 
-  setChatHistory: (history) => set((state) => ({ 
-    chatHistory: history,
+interface Conversation {
+  id: string;
+  messages: Message[];
+}
+
+export const useChatStore = () => {
+  const [chatHistory, setChatHistory] = createSignal<Conversation[]>([]);
+  const [selectedConversation, setSelectedConversation] =
+    createSignal<Conversation | null>(null);
+  const [loading, setLoading] = createSignal(false);
+
+  const updateChatHistory = (history: Conversation[]) => {
+    setChatHistory(history);
     // Preserve selected conversation if it exists in the new history
-    selectedConversation: state.selectedConversation 
-      ? history.find(chat => chat.id === state.selectedConversation.id) || state.selectedConversation
-      : null
-  })),
-  
-  setSelectedConversation: (conversation) => set((state) => {
-    // If setting to null, just update selectedConversation
-    if (!conversation) {
-      return { selectedConversation: null };
+    const selected = selectedConversation();
+    if (selected) {
+      const found = history.find((chat) => chat.id === selected.id);
+      if (found) {
+        setSelectedConversation(found);
+      }
     }
-    
+  };
+
+  const updateSelectedConversation = (conversation: Conversation | null) => {
+    if (!conversation) {
+      setSelectedConversation(null);
+      return;
+    }
+
     // If conversation exists in history, use that version
-    const existingConversation = state.chatHistory.find(chat => chat.id === conversation.id);
-    return { 
-      selectedConversation: existingConversation || conversation,
-      // Update the conversation in chatHistory if it exists
-      chatHistory: state.chatHistory.map(chat => 
-        chat.id === conversation.id ? (existingConversation || conversation) : chat
-      )
-    };
-  }),
-  
-  setLoading: (status) => set({ loading: status }),
-  
-  // Add a new action to safely update a conversation
-  updateConversation: (conversationId, updateFn) => set((state) => {
-    const updatedHistory = state.chatHistory.map(chat => 
-      chat.id === conversationId ? updateFn(chat) : chat
+    const existing = chatHistory().find((chat) => chat.id === conversation.id);
+    if (existing) {
+      setSelectedConversation(existing);
+    } else {
+      setSelectedConversation(conversation);
+    }
+  };
+
+  const updateConversation = (
+    conversationId: string,
+    updateFn: (chat: Conversation) => Conversation,
+  ) => {
+    setChatHistory((history) =>
+      history.map((chat) =>
+        chat.id === conversationId ? updateFn(chat) : chat,
+      ),
     );
-    
-    return {
-      chatHistory: updatedHistory,
-      selectedConversation: state.selectedConversation?.id === conversationId
-        ? updateFn(state.selectedConversation)
-        : state.selectedConversation
-    };
-  }),
 
-  // Add delete conversation action
-  deleteConversation: (conversationId) => set((state) => ({
-    chatHistory: state.chatHistory.filter(chat => chat.id !== conversationId),
-    selectedConversation: state.selectedConversation?.id === conversationId ? null : state.selectedConversation
-  }))
-}));
+    const selected = selectedConversation();
+    if (selected && selected.id === conversationId) {
+      setSelectedConversation(updateFn(selected));
+    }
+  };
 
-export default useChatStore;
+  const deleteConversation = (conversationId: string) => {
+    setChatHistory((history) =>
+      history.filter((chat) => chat.id !== conversationId),
+    );
+
+    const selected = selectedConversation();
+    if (selected && selected.id === conversationId) {
+      setSelectedConversation(null);
+    }
+  };
+
+  return {
+    chatHistory,
+    selectedConversation,
+    loading,
+    setChatHistory: updateChatHistory,
+    setSelectedConversation: updateSelectedConversation,
+    setLoading,
+    updateConversation,
+    deleteConversation,
+  };
+};

@@ -13,8 +13,8 @@ import {
   FRONTEND_URL,
   BACKEND_URL,
 } from "../config";
-import { User } from "@mindscribe/database";
-import mongoose from "mongoose";
+import { db, users, type User } from "@mindscribe/database";
+import { eq, or, and } from "drizzle-orm";
 
 const router: Router = express.Router();
 
@@ -25,16 +25,14 @@ interface JwtPayload {
 
 export interface AuthRequest extends Request {
   user?: {
-    id: mongoose.Types.ObjectId;
+    id: string;
   };
 }
 
 // Create JWT token
-const createJwtToken = (payload: {
-  user_id: mongoose.Types.ObjectId;
-}): string => {
+const createJwtToken = (payload: { user_id: string }): string => {
   const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 24;
-  return jwt.sign({ user_id: payload.user_id.toString(), exp }, SECRET_KEY, {
+  return jwt.sign({ user_id: payload.user_id, exp }, SECRET_KEY, {
     algorithm: ALGORITHM as jwt.Algorithm,
   });
 };
@@ -56,7 +54,7 @@ export const getCurrentUser = (
     const decoded = jwt.verify(token, SECRET_KEY, {
       algorithms: [ALGORITHM as jwt.Algorithm],
     }) as JwtPayload;
-    req.user = { id: new mongoose.Types.ObjectId(decoded.user_id) };
+    req.user = { id: decoded.user_id };
     next();
   } catch (err) {
     res.status(401).json({ detail: "Invalid or expired token" });
@@ -112,13 +110,16 @@ router.post(
       }
 
       // Check if user exists
-      const existingUser = await User.findOne({
-        $or: [{ email }, { username }],
-      });
-      if (existingUser) {
+      const existingUser = await db
+        .select()
+        .from(users)
+        .where(or(eq(users.email, email), eq(users.username, username)))
+        .limit(1);
+
+      if (existingUser.length > 0) {
         return res.status(400).json({
           detail:
-            existingUser.email === email
+            existingUser[0].email === email
               ? "Email already registered"
               : "Username already taken",
         });
@@ -126,18 +127,18 @@ router.post(
 
       // Hash password and create user
       const hash = await bcrypt.hash(password, 10);
-      const user = new User({
+      await db.insert(users).values({
         username,
         email,
         password: hash,
         provider: "local",
       });
-      await user.save();
 
       return res.status(201).json({ message: "User registered successfully" });
     } catch (err: unknown) {
-      const error = err as { code?: number; message?: string };
-      if (error.code === 11000) {
+      const error = err as { code?: string; message?: string };
+      if (error.code === "23505") {
+        // Unique constraint violation
         return res
           .status(400)
           .json({ detail: "Username or email already exists" });
@@ -162,7 +163,12 @@ router.post(
           .json({ detail: "Email and password are required" });
       }
 
-      const user = await User.findOne({ email });
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+
       if (!user || user.provider !== "local" || !user.password) {
         return res.status(401).json({ detail: "Invalid email or password" });
       }
@@ -172,12 +178,12 @@ router.post(
         return res.status(401).json({ detail: "Invalid email or password" });
       }
 
-      const token = createJwtToken({ user_id: user._id });
+      const token = createJwtToken({ user_id: user.id });
       return res.json({
         access_token: token,
         token_type: "bearer",
         user: {
-          id: user._id,
+          id: user.id,
           username: user.username,
           email: user.email,
           provider: user.provider,
@@ -220,35 +226,53 @@ router.post(
       }
 
       // Find or create user
-      let user = await User.findOne({ email });
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
 
-      if (!user) {
-        user = new User({
-          email,
-          username: name || email.split("@")[0],
-          profile_picture: picture,
-          provider: "google",
-          provider_id: response.data.id,
-        });
-        await user.save();
-      } else if (user.provider !== "google") {
+      let user: User;
+
+      if (!existingUser) {
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            email,
+            username: name || email.split("@")[0],
+            profilePicture: picture,
+            provider: "google",
+            providerId: response.data.id,
+          })
+          .returning();
+        user = newUser;
+      } else if (existingUser.provider !== "google") {
         // Link Google account to existing email user
-        user.provider = "google";
-        user.provider_id = response.data.id;
-        user.profile_picture = user.profile_picture || picture;
-        await user.save();
+        const [updatedUser] = await db
+          .update(users)
+          .set({
+            provider: "google",
+            providerId: response.data.id,
+            profilePicture: existingUser.profilePicture || picture,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, existingUser.id))
+          .returning();
+        user = updatedUser;
+      } else {
+        user = existingUser;
       }
 
-      const token = createJwtToken({ user_id: user._id });
+      const token = createJwtToken({ user_id: user.id });
       return res.json({
         access_token: token,
         token_type: "bearer",
         user: {
-          id: user._id,
+          id: user.id,
           username: user.username,
           email: user.email,
           provider: user.provider,
-          profile_picture: user.profile_picture,
+          profile_picture: user.profilePicture,
         },
       });
     } catch (err: unknown) {
@@ -302,36 +326,63 @@ router.post(
       const email = userResponse.data.email || `${login}@github.local`;
 
       // Find or create user
-      let user = await User.findOne({
-        $or: [{ email }, { provider_id: id.toString(), provider: "github" }],
-      });
+      const existingUsers = await db
+        .select()
+        .from(users)
+        .where(
+          or(
+            eq(users.email, email),
+            and(
+              eq(users.providerId, id.toString()),
+              eq(users.provider, "github"),
+            ),
+          ),
+        )
+        .limit(1);
 
-      if (!user) {
-        user = new User({
-          email,
-          username: login,
-          profile_picture: avatar_url,
-          provider: "github",
-          provider_id: id.toString(),
-        });
-        await user.save();
-      } else if (user.provider !== "github") {
-        user.provider = "github";
-        user.provider_id = id.toString();
-        user.profile_picture = user.profile_picture || avatar_url;
-        await user.save();
+      let user: User;
+
+      if (existingUsers.length === 0) {
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            email,
+            username: login,
+            profilePicture: avatar_url,
+            provider: "github",
+            providerId: id.toString(),
+          })
+          .returning();
+        user = newUser;
+      } else {
+        const existingUser = existingUsers[0];
+        if (existingUser.provider !== "github") {
+          const [updatedUser] = await db
+            .update(users)
+            .set({
+              provider: "github",
+              providerId: id.toString(),
+              profilePicture: existingUser.profilePicture || avatar_url,
+              updatedAt: new Date(),
+            })
+            .where(eq(users.id, existingUser.id))
+            .returning();
+          user = updatedUser;
+        } else {
+          user = existingUser;
+        }
       }
 
-      const token = createJwtToken({ user_id: user._id });
+      const token = createJwtToken({ user_id: user.id });
       return res.json({
         access_token: token,
         token_type: "bearer",
         user: {
-          id: user._id,
+          id: user.id,
           username: user.username,
           email: user.email,
           provider: user.provider,
-          profile_picture: user.profile_picture,
+          profile_picture: user.profilePicture,
         },
       });
     } catch (err: unknown) {
@@ -350,17 +401,22 @@ router.get(
   getCurrentUser,
   async (req: AuthRequest, res: Response): Promise<Response> => {
     try {
-      const user = await User.findById(req.user?.id);
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, req.user!.id))
+        .limit(1);
+
       if (!user) {
         return res.status(404).json({ detail: "User not found" });
       }
 
       return res.json({
-        id: user._id,
+        id: user.id,
         username: user.username,
         email: user.email,
         provider: user.provider,
-        profile_picture: user.profile_picture,
+        profile_picture: user.profilePicture,
       });
     } catch (err: unknown) {
       const error = err as { message?: string };

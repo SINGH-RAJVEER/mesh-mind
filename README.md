@@ -17,6 +17,7 @@ This project follows a clean monorepo architecture with:
 - **Personalized Conversations:** Enjoy discussions tailored to your feelings and needs.
 - **24/7 Availability:** Reach out any time. MindScribe is always ready to help.
 - **Secure & Confidential:** Your privacy is paramount. All conversations are local and therefore private and secure.
+- **Vector Embeddings:** Smart context retrieval using semantic search with pgvector and Gemini embeddings for better conversation continuity.
 
 ## Tech Stack
 
@@ -24,8 +25,10 @@ This project follows a clean monorepo architecture with:
 
 - Express.js with TypeScript
 - MongoDB with Mongoose
+- PostgreSQL with pgvector for embeddings
 - JWT Authentication
 - LiteLLM SDK for LLM inference with streaming support
+- Gemini embeddings via LiteLLM for semantic search
 - Server-Sent Events (SSE) for response streaming
 
 ### Frontend
@@ -45,7 +48,9 @@ This project follows a clean monorepo architecture with:
 
 ### Prerequisites
 
-- Node.js 18+ and bun (package manager)
+- PostgreSQL 16+ with pgvector (for embeddings)
+- LiteLLM proxy server (or compatible LLM endpoint like Ollama, OpenAI, etc.)
+- Gemini API key (for embeddings
 - MongoDB running locally
 - LiteLLM proxy server (or compatible LLM endpoint like Ollama, OpenAI, etc.)
 
@@ -66,18 +71,55 @@ This project follows a clean monorepo architecture with:
 
 3. **Start MongoDB server:**
 
-   ```bash
+   ````bash
    # macOS (Homebrew)
    brew services start mongodb-community
 
    # Linux
    sudo systemctl start mongod
 
-   # Windows
-   # MongoDB runs as a Windows service automatically
+   # Start PostgreSQL with pgvector (for embeddings):**
+
+   Using Docker (recommended):
+
+   ```bash
+   docker-compose up -d postgres
+   ````
+
+   Or install locally:
+
+   ```bash
+   # macOS (Homebrew)
+   brew install postgresql pgvector
+
+   # Linux
+   sudo apt-get install postgresql-16 postgresql-16-pgvector
    ```
 
-4. **Configure environment:**
+   Embeddings Model (Gemini via LiteLLM)
+   LLM_EMBEDDING_MODEL=text-embedding-004
+
+   # Database Configuration
+
+   MONGODB_URI=mongodb://localhost:27017/mindscribe
+
+   # PostgreSQL for Vector Embeddings
+
+   POSTGRES_HOST=localhost
+   POSTGRES_PORT=5432
+   POSTGRES_DB=mindscribe_vectors
+   POSTGRES_USER=postgres
+   POSTGRES_PASSWORD=your_postgres_passwordEMBEDDINGS.md) for detailed instructions.
+
+4. \*\*Windows
+
+   # MongoDB runs as a Windows service automatically
+
+   ```
+
+   ```
+
+5. **Configure environment:**
 
    Create `.env` file in `apps/api/`:
 
@@ -116,13 +158,13 @@ This project follows a clean monorepo architecture with:
    litellm --model gpt-3.5-turbo --api_key sk-your-key
    ```
 
-5. **Build the project:**
+6. **Build the project:**
 
    ```bash
    bun run build
    ```
 
-6. **Start development servers:**
+7. **Start development servers:**
 
    ```bash
    bun run dev
@@ -166,7 +208,11 @@ mind-scribe/
 │   ├── api/                  # Backend API (Express + TypeScript)
 │   │   ├── src/
 │   │   │   ├── routes/       # API routes (auth, chat)
+│   │   │   ├── services/     # Business logic services
+│   │   │   │   └── embeddingsService.ts  # Vector embeddings management
 │   │   │   ├── utils/        # Utility functions
+│   │   │   │   ├── litellmManager.ts     # LLM inference
+│   │   │   │   └── embeddingsManager.ts  # Embeddings generation
 │   │   │   ├── config.ts     # Configuration
 │   │   │   ├── systemPrompt.ts
 │   │   │   └── main.ts       # Entry point
@@ -193,12 +239,27 @@ mind-scribe/
 │   └── database/             # Database models & connection
 │       ├── src/
 │       │   ├── models/       # Mongoose models
-│       │   ├── connection.ts # DB connection
+│       │   ├── connection.ts # MongoDB connection
+│       │   ├── pgvector.ts   # PostgreSQL pgvector connection
 │       │   └── index.ts      # Exports
 │       ├── dist/             # Compiled code
 │       ├── tsconfig.json
 │       └── package.json
+├── docker/
+│   ├── Dockerfile.api
+│   ├── Dockerfile.web
+│   ├── init-pgvector.sql    # PostgreSQL initialization
+│   └── nginx.conf
+├── docs/
+│   ├── VECTOR_EMBEDDINGS.md       # Complete embeddings guide
+│   ├── QUICKSTART_EMBEDDINGS.md   # Quick start guide
+│   ├── AUTHENTICATION.md
+│   ├── DOCKER_SETUP.md
+│   └── LITELLM_SETUP.md
+├── scripts/
+│   └── check-embeddings.sh  # Health check script
 ├── turbo.json                # Turborepo config
+├── docker-compose.yml        # Docker services (MongoDB, PostgreSQL, API, Web)
 ├── package.json              # Root workspace config
 └── README.md
 ```
@@ -213,6 +274,45 @@ mind-scribe/
 ## Usage
 
 When you run the application, you'll be greeted by a warm, inviting chat interface. Simply type your thoughts to initiate the discussion.
+
+## Vector Embeddings (Semantic Search)
+
+MindScribe now includes intelligent context retrieval using vector embeddings! This feature provides:
+
+- 🎯 **Semantic Search**: Find relevant past conversations based on meaning, not just keywords
+- 🧠 **Better Context**: When resuming chats, get contextually relevant history automatically
+- ⚡ **Fast Retrieval**: HNSW indexing for efficient similarity search
+- 🔄 **Hybrid Approach**: Combines recent messages with semantically similar ones
+
+### Quick Start
+
+```bash
+# Start PostgreSQL with pgvector
+docker-compose up -d postgres
+
+# Verify setup
+./scripts/check-embeddings.sh
+
+# Start the API
+bun run dev
+```
+
+### Documentation
+
+- 📖 [Complete Vector Embeddings Guide](docs/VECTOR_EMBEDDINGS.md)
+- 🚀 [Quick Start Guide](docs/QUICKSTART_EMBEDDINGS.md)
+- 🛠️ [LiteLLM Setup](docs/LITELLM_SETUP.md)
+
+### How It Works
+
+When you send a message, MindScribe:
+
+1. Generates embeddings using Gemini's `text-embedding-004` model via LiteLLM
+2. Stores vectors in PostgreSQL with pgvector for fast similarity search
+3. Retrieves relevant context when you return to the conversation
+4. Combines recent + semantically similar messages for optimal context
+
+This makes conversations feel more natural and contextually aware!
 
 ## License
 

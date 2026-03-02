@@ -7,13 +7,19 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "mongoose": "^8.2.0"
+    "@types/pg": "^8.18.0",
+    "pg": "^8.19.0",
+    "drizzle-orm": "^0.45.1"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "drizzle-kit": "^0.28.0"
   }
 }

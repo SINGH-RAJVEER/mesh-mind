@@ -1,27 +1,44 @@
-import { create } from "zustand"
-import { persist } from "zustand/middleware"
+import { createSignal, createEffect } from "solid-js";
+import { makePersisted } from "@solid-primitives/storage";
 
-const useAuthStore = create(
-  persist(
-    (set, get) => ({
-      user: null,
-      token: null,
-      isAuthenticated: false,
+interface User {
+  id: string;
+  username: string;
+  email: string;
+}
 
-      setUser: (userData, authToken) => {
-        console
-        set({ user: userData, token: authToken, isAuthenticated: !!authToken })
-      },
+// Create persistent signals for auth state
+const [user, setUser] = makePersisted(createSignal<User | null>(null), {
+  name: "auth-user",
+});
+const [token, setToken] = makePersisted(createSignal<string | null>(null), {
+  name: "auth-token",
+});
 
-      logout: () => {
-        set({ user: null, token: null, isAuthenticated: false })
-      },
-    }),
-    {
-      name: "auth-storage", 
-      getStorage: () => localStorage,
+export const useAuthStore = () => {
+  const getIsAuthenticated = () => !!token();
+
+  const updateAuth = (userData: User | null, authToken: string | null) => {
+    setUser(userData);
+    setToken(authToken);
+    if (authToken) {
+      localStorage.setItem("authToken", authToken);
+    } else {
+      localStorage.removeItem("authToken");
     }
-  )
-)
+  };
 
-export default useAuthStore
+  const logout = () => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem("authToken");
+  };
+
+  return {
+    user,
+    token,
+    isAuthenticated: getIsAuthenticated,
+    setUser: updateAuth,
+    logout,
+  };
+};

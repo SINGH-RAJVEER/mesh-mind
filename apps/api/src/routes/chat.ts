@@ -1,37 +1,55 @@
 import express, { type Router } from "express";
 import type { Response } from "express";
-import { v4 as uuidv4 } from "uuid";
 import { getCurrentUser, type AuthRequest } from "./auth";
 import { CRISIS_WORDS, DETECT_MOOD } from "@mindscribe/types";
 import { getSystemPrompt } from "../systemPrompt";
-import { Conversation, Message } from "@mindscribe/database";
-import type mongoose from "mongoose";
+import { db, conversations, messages } from "@mindscribe/database";
+import { eq, and, desc } from "drizzle-orm";
 import litellmManager from "../utils/litellmManager";
+import embeddingsService from "../services/embeddingsService";
 
 const router: Router = express.Router();
 
 /**
- * Get conversation history for context
+ * Get conversation history for context using vector embeddings
+ * Combines recent messages with semantically relevant past messages
  */
 const getConversationHistory = async (
   conversationId: string | null,
+  currentMessage: string,
 ): Promise<string> => {
   if (!conversationId) {
     return "";
   }
 
-  // Get the last 10 messages for context to keep it manageable
-  const messages = await Message.find({ conversation_id: conversationId })
-    .sort({ timestamp: -1 })
-    .limit(10)
-    .lean();
+  try {
+    // Try to get context using vector embeddings first
+    const vectorContext = await embeddingsService.getConversationContext(
+      conversationId,
+      currentMessage,
+      5, // 5 recent messages
+      5, // 5 similar messages
+    );
 
-  // Reverse the messages to maintain chronological order
-  messages.reverse();
+    if (vectorContext) {
+      return vectorContext;
+    }
+  } catch (err) {
+    console.warn("Vector search failed, falling back to chronological:", err);
+  }
 
-  // Format the conversation history
-  return messages
-    .map((msg) => `User: ${msg.user_message}\nAssistant: ${msg.bot_response}`)
+  // Fallback to traditional chronological retrieval
+  const messageHistory = await db
+    .select()
+    .from(messages)
+    .where(eq(messages.conversationId, conversationId))
+    .orderBy(desc(messages.timestamp))
+    .limit(10);
+
+  messageHistory.reverse();
+
+  return messageHistory
+    .map((msg) => `User: ${msg.userMessage}\nAssistant: ${msg.botResponse}`)
     .join("\n\n");
 };
 
@@ -46,35 +64,49 @@ const detectMood = (userMessage: string): string | null => {
 };
 
 const createNewConversation = async (
-  userId: mongoose.Types.ObjectId,
+  userId: string,
   conversationId: string,
 ): Promise<void> => {
-  const conversation = new Conversation({
-    _id: conversationId,
-    user_id: userId,
+  await db.insert(conversations).values({
+    id: conversationId,
+    userId: userId,
   });
-  await conversation.save();
 };
 
 const storeChat = async (
-  userId: mongoose.Types.ObjectId,
+  userId: string,
   conversationId: string,
   userMessage: string,
   botResponse: string,
   mood: string | null,
   isCrisis: boolean,
-): Promise<void> => {
-  const messageId = uuidv4();
-  const message = new Message({
-    _id: messageId,
-    user_id: userId,
-    conversation_id: conversationId,
-    user_message: userMessage,
-    bot_response: botResponse,
-    mood,
-    is_crisis: isCrisis,
-  });
-  await message.save();
+): Promise<string> => {
+  const [message] = await db
+    .insert(messages)
+    .values({
+      userId: userId,
+      conversationId: conversationId,
+      userMessage: userMessage,
+      botResponse: botResponse,
+      mood: mood,
+      isCrisis: isCrisis,
+    })
+    .returning();
+
+  // Store embeddings asynchronously (don't await to avoid blocking)
+  embeddingsService
+    .storeMessageEmbeddings(
+      message.id,
+      conversationId,
+      userId,
+      userMessage,
+      botResponse,
+    )
+    .catch((err) => {
+      console.error("Failed to store embeddings:", err);
+    });
+
+  return message.id;
 };
 
 // POST /chat - Stream response using Server-Sent Events (SSE)
@@ -103,7 +135,7 @@ router.post(
 
     try {
       if (!conversation_id) {
-        conversation_id = uuidv4();
+        conversation_id = crypto.randomUUID();
         await createNewConversation(user.id, conversation_id);
       }
 
@@ -129,9 +161,11 @@ router.post(
         fullResponse = crisisMessage;
       } else {
         try {
-          // Get conversation history for context
-          const conversationHistory =
-            await getConversationHistory(conversation_id);
+          // Get conversation history for context using vector search
+          const conversationHistory = await getConversationHistory(
+            conversation_id,
+            user_message,
+          );
           const systemPrompt = getSystemPrompt(
             user_message,
             conversationHistory,
@@ -199,35 +233,38 @@ router.get(
 
     const limit = parseInt(req.query.limit as string) || 10;
     try {
-      const messages = await Message.find({ user_id: user.id })
-        .sort({ timestamp: -1 })
-        .limit(limit)
-        .lean();
+      const messageHistory = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.userId, user.id))
+        .orderBy(desc(messages.timestamp))
+        .limit(limit);
 
       // Group messages by conversation_id
-      const conversations: Record<
+      const conversationsMap: Record<
         string,
         { id: string; messages: unknown[]; timestamp: Date }
       > = {};
-      messages.forEach((row) => {
-        if (!conversations[row.conversation_id]) {
-          conversations[row.conversation_id] = {
-            id: row.conversation_id,
+
+      messageHistory.forEach((row) => {
+        if (!conversationsMap[row.conversationId]) {
+          conversationsMap[row.conversationId] = {
+            id: row.conversationId,
             messages: [],
             timestamp: row.timestamp,
           };
         }
-        conversations[row.conversation_id].messages.push({
-          id: row._id,
-          user_message: row.user_message,
-          bot_response: row.bot_response,
+        conversationsMap[row.conversationId].messages.push({
+          id: row.id,
+          user_message: row.userMessage,
+          bot_response: row.botResponse,
           mood: row.mood,
-          is_crisis: row.is_crisis,
+          is_crisis: row.isCrisis,
           timestamp: row.timestamp,
         });
       });
 
-      return res.json({ history: Object.values(conversations) });
+      return res.json({ history: Object.values(conversationsMap) });
     } catch (err: unknown) {
       const error = err as { message?: string };
       return res
@@ -248,17 +285,32 @@ router.delete(
     const { conversationId } = req.params;
 
     try {
+      // Delete embeddings first
+      await embeddingsService
+        .deleteConversationEmbeddings(conversationId)
+        .catch((err) => {
+          console.warn("Failed to delete embeddings:", err);
+        });
+
       // Delete all messages associated with the conversation
-      await Message.deleteMany({
-        user_id: user.id,
-        conversation_id: conversationId,
-      });
+      await db
+        .delete(messages)
+        .where(
+          and(
+            eq(messages.userId, user.id),
+            eq(messages.conversationId, conversationId),
+          ),
+        );
 
       // Delete the conversation itself
-      await Conversation.deleteOne({
-        _id: conversationId,
-        user_id: user.id,
-      });
+      await db
+        .delete(conversations)
+        .where(
+          and(
+            eq(conversations.id, conversationId),
+            eq(conversations.userId, user.id),
+          ),
+        );
 
       return res.json({ message: "Conversation deleted successfully" });
     } catch (err: unknown) {

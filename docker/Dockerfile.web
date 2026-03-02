@@ -4,15 +4,16 @@ FROM oven/bun:1.3.9 AS builder
 WORKDIR /app
 
 # Copy root package files
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 
 # Copy app and package source files
 COPY apps/web ./apps/web
+COPY apps/api ./apps/api
 COPY packages ./packages
 COPY turbo.json biome.json ./
 
 # Install dependencies
-RUN bun install --frozen-lockfile
+RUN bun install
 
 # Build the web app
 RUN bun run build --filter=@mindscribe/web
