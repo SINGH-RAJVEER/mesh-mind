@@ -31,13 +31,14 @@ services:
     command: bun run dev
     environment: &workspace-environment
       NODE_ENV: development
-      SECRET_KEY: ${SECRET_KEY}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       PORT: ${PORT:-8000}
       BACKEND_URL: ${BACKEND_URL:-http://localhost:8000}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       LLM_BASE_URL: ${LLM_BASE_URL}
       LLM_MODEL: ${LLM_MODEL}
-      LLM_API_KEY: ${LLM_API_KEY}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
       LLM_EMBEDDING_MODEL: ${LLM_EMBEDDING_MODEL:-text-embedding-004}
       POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
       POSTGRES_PORT: ${POSTGRES_PORT:-5432}

@@ -33,7 +33,7 @@ Drizzle owns the PostgreSQL schema and connection layer.
 
 ### `packages/types`
 
-- shared prompt, mood, and API-related types
+- shared prompt and API-related types
 
 ## Database tables
 

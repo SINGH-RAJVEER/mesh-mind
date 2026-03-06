@@ -1,6 +1,5 @@
 import { Hono, type Context } from "hono";
 import { getCurrentUser } from "../middleware/auth";
-import { CRISIS_WORDS, DETECT_MOOD } from "@mindscribe/types";
 import { getSystemPrompt } from "../systemPrompt";
 import { db, conversations, messages } from "@mindscribe/database";
 import { eq, and, desc } from "drizzle-orm";
@@ -64,16 +63,6 @@ const getConversationHistory = async (
     .join("\n\n");
 };
 
-const detectMood = (userMessage: string): string | null => {
-  const lower = userMessage.toLowerCase();
-  for (const [mood, keywords] of Object.entries(DETECT_MOOD)) {
-    if (keywords.some((word) => lower.includes(word))) {
-      return mood;
-    }
-  }
-  return null;
-};
-
 const createNewConversation = async (
   userId: string,
   conversationId: string,
@@ -89,8 +78,6 @@ const storeChat = async (
   conversationId: string,
   userMessage: string,
   botResponse: string,
-  mood: string | null,
-  isCrisis: boolean,
 ): Promise<string> => {
   const [message] = await db
     .insert(messages)
@@ -99,8 +86,6 @@ const storeChat = async (
       conversationId: conversationId,
       userMessage: userMessage,
       botResponse: botResponse,
-      mood: mood,
-      isCrisis: isCrisis,
     })
     .returning();
 
@@ -138,11 +123,6 @@ chatbotRouter.post("/", getCurrentUser, async (c: Context) => {
     if (!user_message || typeof user_message !== "string") {
       return c.json({ detail: "user_message is required" }, 400);
     }
-
-    const isCrisis = CRISIS_WORDS.some((word) =>
-      user_message.toLowerCase().includes(word),
-    );
-    const mood = detectMood(user_message);
 
     try {
       if (!conversation_id) {
@@ -186,20 +166,7 @@ chatbotRouter.post("/", getCurrentUser, async (c: Context) => {
             sendEvent({
               type: "metadata",
               conversation_id: finalizedConversationId,
-              mood,
             });
-
-            if (isCrisis) {
-              const crisisMessage =
-                "Please seek professional help. You're not alone ❤️.";
-              fullResponse = crisisMessage;
-              shouldPersist = true;
-
-              sendEvent({ type: "text", content: crisisMessage });
-              sendEvent({ type: "done" });
-              closeStream();
-              return;
-            }
 
             const conversationHistory = await getConversationHistory(
               finalizedConversationId,
@@ -243,8 +210,6 @@ chatbotRouter.post("/", getCurrentUser, async (c: Context) => {
                 finalizedConversationId,
                 user_message,
                 fullResponse,
-                mood,
-                isCrisis,
               ).catch((err) => {
                 console.error("Failed to store chat:", err);
               });
@@ -306,8 +271,6 @@ chatbotRouter.get("/history", getCurrentUser, async (c: Context) => {
         id: row.id,
         user_message: row.userMessage,
         bot_response: row.botResponse,
-        mood: row.mood,
-        is_crisis: row.isCrisis,
         timestamp: row.timestamp,
       });
     });

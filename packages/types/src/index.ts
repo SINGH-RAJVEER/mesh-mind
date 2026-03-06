@@ -33,8 +33,6 @@ export interface Message {
   id: string;
   user_message?: string;
   bot_response?: string;
-  mood?: string | null;
-  is_crisis?: boolean;
   timestamp?: string | Date;
   type?: "user" | "ai";
 }
@@ -55,7 +53,6 @@ export interface SendMessageParams {
 export interface SendMessageResponse {
   response: string;
   conversation_id: string;
-  mood: string | null;
   user_message?: string;
   message?: string;
 }
@@ -63,25 +60,3 @@ export interface SendMessageResponse {
 export interface DeleteChatResponse {
   message: string;
 }
-
-// Mood and crisis detection
-export interface MoodDetectionMap {
-  [key: string]: string[];
-}
-
-export const CRISIS_WORDS: string[] = [
-  "suicide",
-  "depressed",
-  "self-harm",
-  "kill myself",
-  "hopeless",
-  "give up",
-];
-
-export const DETECT_MOOD: MoodDetectionMap = {
-  happy: ["joy", "excited", "great", "happy", "pleased", "wonderful"],
-  sad: ["sad", "unhappy", "down", "miserable", "depressed", "gloomy"],
-  angry: ["angry", "furious", "annoyed", "frustrated", "mad"],
-  anxious: ["nervous", "worried", "anxious", "stressed", "scared"],
-  calm: ["calm", "relaxed", "peaceful", "content"],
-};

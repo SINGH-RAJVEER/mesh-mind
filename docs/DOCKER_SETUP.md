@@ -17,7 +17,7 @@ The development workflow lives in [docker/dev/docker-compose.dev.yml](../docker/
 
 ### Development quick start
 
-1. Create a root `.env` file with the environment variables required by the API and OAuth providers. Use [.env.example](../.env.example) as the starting point and make sure `SECRET_KEY`, database credentials, OAuth credentials, and the frontend API variables are populated.
+1. Create a root `.env` file with the environment variables required by the API and OAuth providers. Use [.env.example](../.env.example) as the starting point and make sure `BETTER_AUTH_SECRET`, database credentials, `LLM_BASE_URL`, `LLM_MODEL`, `LLM_EMBEDDING_MODEL`, `GROQ_API_KEY`, `GEMINI_API_KEY`, OAuth credentials, and the frontend API variables are populated.
 2. Start the stack:
 
 ```bash
@@ -50,6 +50,7 @@ docker compose -f docker/dev/docker-compose.dev.yml down -v
 - runs `bun run dev`
 - mounts the repository at `/app`
 - stores `/app/node_modules` in a Docker volume
+- passes `GROQ_API_KEY` for chat inference and `GEMINI_API_KEY` for embedding inference
 
 ### Web container
 
@@ -133,7 +134,7 @@ The production workflow lives in [docker/prod/docker-compose.prod.yml](../docker
 
 ### Production quick start
 
-1. Set production-ready values in `.env`, especially `SECRET_KEY` or `BETTER_AUTH_SECRET`, OAuth credentials, database credentials, `FRONTEND_URL`, `BACKEND_URL`, and `VITE_API_URL`.
+1. Set production-ready values in `.env`, especially `BETTER_AUTH_SECRET`, database credentials, `LLM_BASE_URL`, `LLM_MODEL`, `LLM_EMBEDDING_MODEL`, `GROQ_API_KEY`, `GEMINI_API_KEY`, OAuth credentials, `FRONTEND_URL`, `BACKEND_URL`, and `VITE_API_URL`.
 2. Start the production stack:
 
 ```bash
@@ -146,7 +147,7 @@ docker compose -f docker/prod/docker-compose.prod.yml up --build -d
 
 - [docker/prod/Dockerfile.api.prod](../docker/prod/Dockerfile.api.prod) builds the API and runs the compiled output.
 - [docker/prod/Dockerfile.web.prod](../docker/prod/Dockerfile.web.prod) builds the frontend and serves it from Nginx.
-- [docker/prod/nginx.prod.conf](../docker/prod/nginx.prod.conf) serves the SPA, caches static assets, and proxies `/api/` to the internal API service.
+- [docker/prod/nginx.conf](../docker/prod/nginx.conf) serves the SPA, caches static assets, and proxies `/api/` to the internal API service.
 
 ### Production commands
 
@@ -178,3 +179,4 @@ just docker-prod-down
 - The production Nginx entrypoint and production Dockerfiles live under [docker/prod](../docker/prod).
 - Development does not use Nginx; Nginx is only part of the production web image.
 - The production web image expects `VITE_API_URL` to stay aligned with the Nginx proxy path, which defaults to `/api`.
+- The Docker Compose files pass `GROQ_API_KEY` to chat inference and `GEMINI_API_KEY` to embeddings.

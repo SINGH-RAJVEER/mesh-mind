@@ -83,8 +83,6 @@ CREATE TABLE IF NOT EXISTS messages (
     conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
     user_message TEXT NOT NULL,
     bot_response TEXT NOT NULL,
-    mood VARCHAR(50),
-    is_crisis BOOLEAN NOT NULL DEFAULT false,
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -92,7 +90,6 @@ CREATE TABLE IF NOT EXISTS messages (
 CREATE INDEX IF NOT EXISTS messages_user_id_idx ON messages(user_id);
 CREATE INDEX IF NOT EXISTS messages_conversation_id_idx ON messages(conversation_id);
 CREATE INDEX IF NOT EXISTS messages_timestamp_idx ON messages(timestamp);
-CREATE INDEX IF NOT EXISTS messages_is_crisis_idx ON messages(is_crisis);
 CREATE INDEX IF NOT EXISTS messages_user_conversation_idx ON messages(user_id, conversation_id);
 
 -- Create table for message embeddings

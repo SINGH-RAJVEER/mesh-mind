@@ -158,8 +158,6 @@ export const messages = pgTable(
       .references(() => conversations.id, { onDelete: "cascade" }),
     userMessage: text("user_message").notNull(),
     botResponse: text("bot_response").notNull(),
-    mood: varchar("mood", { length: 50 }),
-    isCrisis: boolean("is_crisis").notNull().default(false),
     timestamp: timestamp("timestamp", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -170,7 +168,6 @@ export const messages = pgTable(
       table.conversationId,
     ),
     timestampIdx: index("messages_timestamp_idx").on(table.timestamp),
-    isCrisisIdx: index("messages_is_crisis_idx").on(table.isCrisis),
     userConversationIdx: index("messages_user_conversation_idx").on(
       table.userId,
       table.conversationId,
