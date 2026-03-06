@@ -17,7 +17,7 @@ The development workflow lives in [docker/dev/docker-compose.dev.yml](../docker/
 
 ### Development quick start
 
-1. Create a root `.env` file with the environment variables required by the API and OAuth providers.
+1. Create a root `.env` file with the environment variables required by the API and OAuth providers. Use [.env.example](../.env.example) as the starting point and make sure `SECRET_KEY`, database credentials, OAuth credentials, and the frontend API variables are populated.
 2. Start the stack:
 
 ```bash
@@ -133,7 +133,7 @@ The production workflow lives in [docker/prod/docker-compose.prod.yml](../docker
 
 ### Production quick start
 
-1. Set production-ready values in `.env`, especially `SECRET_KEY`, OAuth credentials, database credentials, `FRONTEND_URL`, and `BACKEND_URL`.
+1. Set production-ready values in `.env`, especially `SECRET_KEY` or `BETTER_AUTH_SECRET`, OAuth credentials, database credentials, `FRONTEND_URL`, `BACKEND_URL`, and `VITE_API_URL`.
 2. Start the production stack:
 
 ```bash
@@ -177,4 +177,4 @@ just docker-prod-down
 - [Justfile](../Justfile) wraps the most common Bun and Docker workflows in one place.
 - The production Nginx entrypoint and production Dockerfiles live under [docker/prod](../docker/prod).
 - Development does not use Nginx; Nginx is only part of the production web image.
-- The production web image expects `VITE_API_BASE_URL` to stay aligned with the Nginx proxy path, which defaults to `/api`.
+- The production web image expects `VITE_API_URL` to stay aligned with the Nginx proxy path, which defaults to `/api`.

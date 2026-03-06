@@ -3,11 +3,6 @@ import auth from "../auth";
 
 const authRouter = new Hono();
 
-authRouter.all("/*", async (c: Context) => {
-  return auth.handler(c.req.raw);
-});
-
-// Helper endpoint to get OAuth provider URLs
 authRouter.get("/oauth/url/:provider", async (c: Context) => {
   const provider = c.req.param("provider") as string | undefined;
 
@@ -44,6 +39,10 @@ authRouter.get("/me", async (c: Context) => {
   } catch (_err) {
     return c.json({ detail: "Failed to get user session" }, 500);
   }
+});
+
+authRouter.all("/*", async (c: Context) => {
+  return auth.handler(c.req.raw);
 });
 
 export { authRouter };

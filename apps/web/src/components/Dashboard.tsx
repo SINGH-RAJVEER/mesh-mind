@@ -7,10 +7,10 @@ import {
 } from "../hooks/useChat";
 import { useLogout } from "../hooks/useLogout";
 import { useChatStore } from "../store/chatStore";
-import { marked } from "marked";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Sidebar } from "./ui/sidebar";
+import MarkdownContent from "./MarkdownContent";
 import headerImg from "../assets/header.png";
 import ThemeToggle from "./ThemeToggle";
 
@@ -190,11 +190,8 @@ function Dashboard() {
                                 <Show when={message.bot_response}>
                                   <div className="flex justify-start">
                                     <div className="bg-muted rounded-2xl px-4 py-3 max-w-xs sm:max-w-md lg:max-w-lg break-words shadow-sm">
-                                      <div
-                                        class="prose prose-sm dark:prose-invert max-w-none text-foreground"
-                                        innerHTML={marked(
-                                          message.bot_response || "",
-                                        )}
+                                      <MarkdownContent
+                                        content={message.bot_response || ""}
                                       />
                                     </div>
                                   </div>
@@ -215,10 +212,7 @@ function Dashboard() {
                     <Show when={streamingMessage()}>
                       <div className="flex justify-start">
                         <div className="bg-muted rounded-2xl px-4 py-3 max-w-xs sm:max-w-md lg:max-w-lg break-words shadow-sm animate-pulse">
-                          <div
-                            class="prose prose-sm dark:prose-invert max-w-none text-foreground"
-                            innerHTML={marked(streamingMessage())}
-                          />
+                          <MarkdownContent content={streamingMessage()} />
                         </div>
                       </div>
                     </Show>

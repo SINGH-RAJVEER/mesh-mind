@@ -4,13 +4,7 @@ class LiteLLMManager {
   private client: OpenAI;
 
   constructor() {
-    // Initialize OpenAI client with explicit configuration
-    // Can work with:
-    // 1. OpenAI's API with OPENAI_API_KEY
-    // 2. Local LLM servers via base URL (Ollama, LiteLLM proxy, etc.)
-    // 3. Other providers via LiteLLM proxy
-
-    const apiKey = process.env.LLM_API_KEY || "not-needed";
+    const apiKey = process.env.GROQ_API_KEY || "not-needed";
     const baseURL = process.env.LLM_BASE_URL || "http://localhost:8000/v1";
     const defaultModel = process.env.LLM_MODEL || "gpt-3.5-turbo";
 

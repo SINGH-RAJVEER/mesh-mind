@@ -1,3 +1,3 @@
 export { default as db } from "./connection";
-export { default as pgVector } from "./pgvector";
+export { closeConnection, healthCheck, queryClient } from "./connection";
 export * from "./schema";

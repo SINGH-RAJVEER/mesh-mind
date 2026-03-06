@@ -1,8 +1,9 @@
+import type { RouteSectionProps } from "@solidjs/router";
+import { Navigate } from "@solidjs/router";
 import { createSignal, Show, onMount } from "solid-js";
-import { Navigate, Outlet } from "@solidjs/router";
 import { useAuthStore } from "../store/authStore";
 
-const ProtectedRoute = () => {
+const ProtectedRoute = (props: RouteSectionProps) => {
   const { isAuthenticated } = useAuthStore();
   const [mounted, setMounted] = createSignal(false);
 
@@ -15,7 +16,7 @@ const ProtectedRoute = () => {
       when={mounted() && isAuthenticated()}
       fallback={<Navigate href="/login" />}
     >
-      <Outlet />
+      {props.children}
     </Show>
   );
 };

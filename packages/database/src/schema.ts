@@ -1,4 +1,5 @@
 import {
+  customType,
   pgTable,
   varchar,
   uuid,
@@ -7,8 +8,21 @@ import {
   timestamp,
   index,
   uniqueIndex,
-  integer,
 } from "drizzle-orm/pg-core";
+
+const vector = customType<{
+  data: number[];
+  driverData: string;
+  config: { dimensions: number };
+  configRequired: true;
+}>({
+  dataType(config) {
+    return `vector(${config.dimensions})`;
+  },
+  toDriver(value: number[]) {
+    return `[${value.join(",")}]`;
+  },
+});
 
 // Users table (compatible with BetterAuth)
 export const users = pgTable(
@@ -42,15 +56,19 @@ export const accounts = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    providerId: varchar("provider_id", { length: 255 }).notNull(),
     accountId: varchar("account_id", { length: 255 }).notNull(),
-    provider: varchar("provider", { length: 255 }).notNull(),
-    providerAccountId: varchar("provider_account_id", { length: 255 }).notNull(),
     accessToken: text("access_token"),
     refreshToken: text("refresh_token"),
-    expiresAt: integer("expires_at"),
     idToken: text("id_token"),
-    tokenType: varchar("token_type", { length: 255 }),
+    accessTokenExpiresAt: timestamp("access_token_expires_at", {
+      withTimezone: true,
+    }),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", {
+      withTimezone: true,
+    }),
     scope: text("scope"),
+    password: text("password"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -60,7 +78,11 @@ export const accounts = pgTable(
   },
   (table) => ({
     userIdIdx: index("accounts_user_id_idx").on(table.userId),
-    providerIdx: index("accounts_provider_idx").on(table.provider),
+    providerIdIdx: index("accounts_provider_id_idx").on(table.providerId),
+    providerAccountIdx: uniqueIndex("accounts_provider_account_idx").on(
+      table.providerId,
+      table.accountId,
+    ),
   }),
 );
 
@@ -74,6 +96,8 @@ export const sessions = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     token: varchar("token", { length: 255 }).notNull().unique(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ipAddress: varchar("ip_address", { length: 255 }),
+    userAgent: text("user_agent"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -154,6 +178,46 @@ export const messages = pgTable(
   }),
 );
 
+// Message embeddings table
+export const messageEmbeddings = pgTable(
+  "message_embeddings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    messageId: uuid("message_id")
+      .notNull()
+      .references(() => messages.id, { onDelete: "cascade" }),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    content: text("content").notNull(),
+    isUserMessage: boolean("is_user_message").notNull().default(true),
+    embedding: vector("embedding", { dimensions: 768 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    messageEmbeddingUniqueIdx: uniqueIndex("message_embeddings_message_idx").on(
+      table.messageId,
+      table.isUserMessage,
+    ),
+    userIdIdx: index("message_embeddings_user_id_idx").on(table.userId),
+    conversationIdIdx: index("message_embeddings_conversation_id_idx").on(
+      table.conversationId,
+    ),
+    userConversationIdx: index("message_embeddings_user_conversation_idx").on(
+      table.userId,
+      table.conversationId,
+    ),
+    createdAtIdx: index("message_embeddings_created_at_idx").on(
+      table.createdAt,
+    ),
+  }),
+);
+
 // TypeScript types
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -172,3 +236,6 @@ export type NewConversation = typeof conversations.$inferInsert;
 
 export type Message = typeof messages.$inferSelect;
 export type NewMessage = typeof messages.$inferInsert;
+
+export type MessageEmbedding = typeof messageEmbeddings.$inferSelect;
+export type NewMessageEmbedding = typeof messageEmbeddings.$inferInsert;

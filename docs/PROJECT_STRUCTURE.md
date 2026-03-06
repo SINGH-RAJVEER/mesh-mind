@@ -1,208 +1,72 @@
-# Project Structure Documentation
+# Project Structure
 
-## Directory Organization
+## Applications
 
-### Backend API (`apps/api/src/`)
+### `apps/api`
 
-```
-src/
-├── config.ts              # Configuration variables
-├── main.ts                # Express server setup
-├── systemPrompt.ts        # LLM system prompt
-├── middleware/            # Express middleware
-│   ├── index.ts           # Error handling & async wrapper
-│   └── auth.ts            # JWT authentication
-├── routes/                # API endpoints
-│   ├── auth.ts            # Authentication endpoints
-│   └── chat.ts            # Chat endpoints with streaming
-├── services/              # Business logic layer
-│   └── database.ts        # Database queries & operations
-├── controllers/           # Request handlers (extensible)
-└── utils/                 # Utility functions
-    └── litellmManager.ts  # LLM integration with streaming
-```
+- `src/main.ts` — Hono server bootstrap and health endpoint
+- `src/auth.ts` — Better Auth configuration backed by Drizzle
+- `src/routes/auth.ts` — auth route mounting and profile endpoint
+- `src/routes/chat.ts` — chat streaming, history, and conversation deletion
+- `src/middleware/auth.ts` — authenticated user middleware
+- `src/services/embeddingsService.ts` — pgvector-backed semantic retrieval
+- `src/utils/litellmManager.ts` — chat completion streaming helper
+- `src/utils/embeddingsManager.ts` — embedding generation helper
 
-### Frontend Application (`apps/web/src/`)
+### `apps/web`
 
-```
-src/
-├── App.tsx                # Root component
-├── main.tsx               # React DOM entry point
-├── index.css              # Global styles
-├── api/                   # API client
-│   ├── axiosInstance.ts   # Axios configuration
-│   ├── authApi.ts         # Auth endpoints
-│   └── chatApi.ts         # Chat endpoints
-├── components/            # Reusable components
-│   ├── ui/                # Shadcn/ui components
-│   ├── Dashboard.tsx      # Main chat interface
-│   ├── Login.tsx          # Login page
-│   ├── Register.tsx       # Registration page
-│   ├── ProtectedRoute.tsx # Route protection
-│   ├── ThemeToggle.tsx    # Theme switcher
-│   └── Toast.tsx          # Toast notifications
-├── hooks/                 # Custom React hooks
-│   ├── useChat.ts         # Chat logic
-│   ├── useLogin.ts        # Login logic
-│   ├── useLogout.ts       # Logout logic
-│   └── useRegister.ts     # Registration logic
-├── store/                 # State management (Zustand)
-│   ├── authStore.ts       # Auth state
-│   └── chatStore.ts       # Chat state
-├── assets/                # Static assets
-│   ├── header.png         # Header image
-│   └── icon.png           # App icon
-├── pages/                 # Route pages (extensible)
-└── features/              # Feature-specific code (extensible)
-```
+- `src/components` — UI screens and reusable primitives
+- `src/hooks` — auth and chat hooks
+- `src/store` — client state
+- `src/api` — frontend API clients
 
-### Database Package (`packages/database/src/`)
+## Packages
 
-```
-src/
-├── connection.ts          # MongoDB connection
-├── models/                # Data models
-│   ├── User.ts            # User schema with indexes
-│   ├── Conversation.ts    # Conversation schema with indexes
-│   └── Message.ts         # Message schema with indexes
-└── index.ts               # Model exports
-```
+### `packages/database`
 
-### Types Package (`packages/types/src/`)
+Drizzle owns the PostgreSQL schema and connection layer.
 
-```
-src/
-└── index.ts               # Shared TypeScript types
-```
+- `src/schema.ts` — Drizzle table definitions for auth, chat, and embeddings
+- `src/connection.ts` — shared PostgreSQL client and health helpers
+- `src/index.ts` — public exports for the API
+- `drizzle.config.ts` — Drizzle Kit configuration
 
-## Performance Optimizations
+### `packages/types`
 
-### MongoDB Indexes
+- shared prompt, mood, and API-related types
 
-All collections now have strategic indexes for optimal query performance:
+## Database tables
 
-**User Collection:**
+MindScribe stores all persisted data in PostgreSQL:
 
-- Index on `username` for user lookup
-- Index on `email` for email-based queries
+- `users`
+- `accounts`
+- `sessions`
+- `verification`
+- `conversations`
+- `messages`
+- `message_embeddings`
 
-**Conversation Collection:**
+## Performance notes
 
-- Index on `user_id` for conversation listing
-- Compound index on `(_id, user_id)` for user-specific lookups
+- Drizzle indexes are defined in `packages/database/src/schema.ts`
+- `message_embeddings` also has an HNSW index created by `docker/init-pgvector.sql`
+- chat history uses relational queries first and semantic similarity when embeddings are available
 
-**Message Collection:**
+## Environment variables
 
-- Index on `user_id` for user's all messages
-- Index on `conversation_id` for conversation messages
-- Compound index on `(user_id, conversation_id)` for specific queries
-- Index on `timestamp` (descending) for chronological queries
-- Index on `is_crisis` for crisis message detection
-
-### React Compiler
-
-The React Compiler is enabled via Babel plugin in Vite configuration:
-
-- Automatically memoizes components and variables
-- Reduces unnecessary re-renders
-- Optimizes component output
-
-### Code Quality Tools
-
-#### Biome Linter & Formatter
-
-All packages use Biome for consistent code quality:
-
-- **Configuration:** `biome.json` at root
-- **Features:**
-  - Fast linting across TypeScript/JavaScript
-  - Automatic code formatting
-  - Import organization
-  - Security checks
-  - React-specific rules
-
-**Commands:**
-
-```bash
-bun run lint      # Lint and fix all packages
-bun run format    # Format all packages
-```
-
-## Services Layer
-
-The `apps/api/src/services/database.ts` provides a standardized interface:
-
-### UserService
-
-- `findById(id)` - Get user by ID
-- `findByEmail(email)` - Get user by email
-- `findByUsername(username)` - Get user by username
-
-### ConversationService
-
-- `getConversationsByUserId(userId)` - List user's conversations
-- `getConversationById(id)` - Get specific conversation
-- `createConversation(userId, id)` - Create new conversation
-- `deleteConversation(id)` - Delete conversation
-
-### MessageService
-
-- `getMessagesByConversationId(conversationId)` - Get messages in conversation
-- `createMessage(messageData)` - Add new message
-- `getCrisisMessages(userId)` - Get user's crisis messages
-
-## Middleware
-
-### Error Handling
-
-- `errorHandler` - Express error middleware with status codes
-- `asyncHandler` - Wraps route handlers to catch promises
-
-### Authentication
-
-- `authenticateToken` - JWT verification middleware
-- Extracts user from token and attaches to request
-
-## Build & Development
-
-### Scripts (Root)
-
-```bash
-bun run dev          # Start all in development mode
-bun run build        # Build all packages
-bun run type-check   # Type check all packages
-bun run lint         # Lint and fix all packages
-bun run format       # Format all packages
-bun run clean        # Clean artifacts and node_modules
-```
-
-### Turbo Pipeline
-
-Configuration in `turbo.json`:
-
-- `build` - Depends on `^build` (deps must build first)
-- `dev` - No caching, runs persistently
-- `lint` - Depends on `^lint`
-- `format` - Depends on `^format`
-- `type-check` - Depends on `^type-check`
-- `clean` - No caching
-
-## Environment Setup
-
-Create `.env` file in `apps/api/`:
+Core database variables:
 
 ```env
-MONGODB_URI=mongodb://localhost:27017/mindscribe
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=mistral
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=mindscribe
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_password
 ```
 
-## Future Extensibility
+Related setup guides:
 
-The structure is designed to support growth:
-
-- **Controllers:** Add request validation and routing logic
-- **Pages:** Add route-based pages in web app
-- **Features:** Organize complex features with own folders
-- **Services:** Add more business logic services
-- **Middleware:** Add middleware for logging, auth, etc.
+- [AUTHENTICATION.md](./AUTHENTICATION.md)
+- [VECTOR_EMBEDDINGS.md](./VECTOR_EMBEDDINGS.md)
+- [DOCKER_SETUP.md](./DOCKER_SETUP.md)

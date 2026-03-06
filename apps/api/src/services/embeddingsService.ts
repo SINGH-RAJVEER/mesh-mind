@@ -1,6 +1,11 @@
-import { pgVector } from "@mindscribe/database";
+import {
+  db,
+  messageEmbeddings,
+  queryClient,
+} from "@mindscribe/database";
+import { desc, eq, sql } from "drizzle-orm";
 import embeddingsManager from "../utils/embeddingsManager";
-import type { MessageEmbeddingRow, QueryResult } from "./types";
+import type { MessageEmbeddingRow } from "./types";
 
 export interface MessageEmbeddingData {
   id?: string;
@@ -11,9 +16,19 @@ export interface MessageEmbeddingData {
   isUserMessage: boolean;
   embedding?: number[];
   createdAt?: Date;
+  similarity?: number;
 }
 
 class MessageEmbeddingsService {
+  private toVectorLiteral(values: number[]): string {
+    return `[${values
+      .map((value) => {
+        const normalized = Number(value);
+        return Number.isFinite(normalized) ? normalized.toString() : "0";
+      })
+      .join(",")}]`;
+  }
+
   /**
    * Store embeddings for a user message and bot response
    */
@@ -67,25 +82,31 @@ class MessageEmbeddingsService {
    * Insert a single embedding into the database
    */
   private async insertEmbedding(data: MessageEmbeddingData): Promise<void> {
-    const query = `
-      INSERT INTO message_embeddings 
-        (message_id, conversation_id, user_id, content, is_user_message, embedding)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      ON CONFLICT (message_id, is_user_message) 
-      DO UPDATE SET
-        content = EXCLUDED.content,
-        embedding = EXCLUDED.embedding,
-        created_at = CURRENT_TIMESTAMP
-    `;
+    if (!data.embedding) {
+      throw new Error("Embedding data is required");
+    }
 
-    await pgVector.query(query, [
-      data.messageId,
-      data.conversationId,
-      data.userId,
-      data.content,
-      data.isUserMessage,
-      JSON.stringify(data.embedding), // pgvector expects array as JSON string
-    ]);
+    await db
+      .insert(messageEmbeddings)
+      .values({
+        messageId: data.messageId,
+        conversationId: data.conversationId,
+        userId: data.userId,
+        content: data.content,
+        isUserMessage: data.isUserMessage,
+        embedding: data.embedding,
+      })
+      .onConflictDoUpdate({
+        target: [
+          messageEmbeddings.messageId,
+          messageEmbeddings.isUserMessage,
+        ],
+        set: {
+          content: data.content,
+          embedding: data.embedding,
+          createdAt: sql`CURRENT_TIMESTAMP`,
+        },
+      });
   }
 
   /**
@@ -124,14 +145,14 @@ class MessageEmbeddingsService {
         LIMIT $4
       `;
 
-      const result = (await pgVector.query(query, [
-        JSON.stringify(queryEmbedding),
+      const result = (await queryClient.unsafe(query, [
+        this.toVectorLiteral(queryEmbedding),
         conversationId,
         similarityThreshold,
         limit,
-      ])) as QueryResult<MessageEmbeddingRow>;
+      ])) as MessageEmbeddingRow[];
 
-      return result.rows.map((row) => ({
+      return result.map((row) => ({
         id: row.id,
         messageId: row.message_id,
         conversationId: row.conversation_id,
@@ -139,7 +160,7 @@ class MessageEmbeddingsService {
         content: row.content,
         isUserMessage: row.is_user_message,
         createdAt: row.created_at,
-        similarity: row.similarity,
+        similarity: row.similarity ? Number(row.similarity) : undefined,
       }));
     } catch (err) {
       console.error("Error finding similar messages:", err);
@@ -179,14 +200,14 @@ class MessageEmbeddingsService {
         LIMIT $4
       `;
 
-      const result = (await pgVector.query(query, [
-        JSON.stringify(queryEmbedding),
+      const result = (await queryClient.unsafe(query, [
+        this.toVectorLiteral(queryEmbedding),
         userId,
         similarityThreshold,
         limit,
-      ])) as QueryResult<MessageEmbeddingRow>;
+      ])) as MessageEmbeddingRow[];
 
-      return result.rows.map((row) => ({
+      return result.map((row) => ({
         id: row.id,
         messageId: row.message_id,
         conversationId: row.conversation_id,
@@ -194,7 +215,7 @@ class MessageEmbeddingsService {
         content: row.content,
         isUserMessage: row.is_user_message,
         createdAt: row.created_at,
-        similarity: row.similarity,
+        similarity: row.similarity ? Number(row.similarity) : undefined,
       }));
     } catch (err) {
       console.error("Error finding similar messages for user:", err);
@@ -215,18 +236,16 @@ class MessageEmbeddingsService {
   ): Promise<string> {
     try {
       // Get recent messages (chronological order)
-      const recentQuery = `
-        SELECT content, is_user_message, created_at
-        FROM message_embeddings
-        WHERE conversation_id = $1
-        ORDER BY created_at DESC
-        LIMIT $2
-      `;
-
-      const recentResult = (await pgVector.query(recentQuery, [
-        conversationId,
-        recentLimit,
-      ])) as QueryResult<MessageEmbeddingRow>;
+      const recentMessages = await db
+        .select({
+          content: messageEmbeddings.content,
+          isUserMessage: messageEmbeddings.isUserMessage,
+          createdAt: messageEmbeddings.createdAt,
+        })
+        .from(messageEmbeddings)
+        .where(eq(messageEmbeddings.conversationId, conversationId))
+        .orderBy(desc(messageEmbeddings.createdAt))
+        .limit(recentLimit);
 
       // Get semantically similar messages
       const similarMessages = await this.findSimilarMessagesInConversation(
@@ -237,11 +256,10 @@ class MessageEmbeddingsService {
       );
 
       // Combine and format the context
-      const recentContext = recentResult.rows
+      const recentContext = recentMessages
         .reverse()
         .map(
-          (row: { content: string; is_user_message: boolean }) =>
-            `${row.is_user_message ? "User" : "Assistant"}: ${row.content}`,
+          (row) => `${row.isUserMessage ? "User" : "Assistant"}: ${row.content}`,
         )
         .join("\n");
 
@@ -272,24 +290,18 @@ class MessageEmbeddingsService {
    * Delete embeddings for a specific conversation
    */
   async deleteConversationEmbeddings(conversationId: string): Promise<void> {
-    const query = `
-      DELETE FROM message_embeddings
-      WHERE conversation_id = $1
-    `;
-
-    await pgVector.query(query, [conversationId]);
+    await db
+      .delete(messageEmbeddings)
+      .where(eq(messageEmbeddings.conversationId, conversationId));
   }
 
   /**
    * Delete embeddings for a specific message
    */
   async deleteMessageEmbeddings(messageId: string): Promise<void> {
-    const query = `
-      DELETE FROM message_embeddings
-      WHERE message_id = $1
-    `;
-
-    await pgVector.query(query, [messageId]);
+    await db
+      .delete(messageEmbeddings)
+      .where(eq(messageEmbeddings.messageId, messageId));
   }
 }
 

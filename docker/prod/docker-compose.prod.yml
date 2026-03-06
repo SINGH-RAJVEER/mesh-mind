@@ -69,7 +69,7 @@ services:
       context: ../..
       dockerfile: ./docker/prod/Dockerfile.web.prod
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+        VITE_API_URL: ${VITE_API_URL:-/api}
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
         VITE_GITHUB_CLIENT_ID: ${VITE_GITHUB_CLIENT_ID}
     container_name: mindscribe-web-prod
@@ -82,7 +82,11 @@ services:
     networks:
       - mindscribe-network
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1/ || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --quiet --tries=1 --spider http://127.0.0.1/ || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3

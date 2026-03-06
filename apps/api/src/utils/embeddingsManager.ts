@@ -5,10 +5,9 @@ class EmbeddingsManager {
   private embeddingModel: string;
 
   constructor() {
-    // Initialize OpenAI client for embeddings
-    // Works with LiteLLM proxy supporting Gemini embeddings
-    const apiKey = process.env.LLM_API_KEY || "not-needed";
+    const apiKey = process.env.GEMINI_API_KEY || "not-needed";
     const baseURL = process.env.LLM_BASE_URL || "http://localhost:8000/v1";
+
     this.embeddingModel =
       process.env.LLM_EMBEDDING_MODEL || "text-embedding-004";
 

@@ -8,6 +8,18 @@ import litellmManager from "../utils/litellmManager";
 import embeddingsService from "../services/embeddingsService";
 
 const chatbotRouter = new Hono();
+const sseHeaders = {
+  "Content-Type": "text/event-stream; charset=utf-8",
+  "Cache-Control": "no-cache, no-transform",
+  Connection: "keep-alive",
+  "X-Accel-Buffering": "no",
+} as const;
+
+const encoder = new TextEncoder();
+
+const encodeSseEvent = (payload: Record<string, unknown>): Uint8Array => {
+  return encoder.encode(`data: ${JSON.stringify(payload)}\n\n`);
+};
 
 /**
  * Get conversation history for context using vector embeddings
@@ -138,87 +150,116 @@ chatbotRouter.post("/", getCurrentUser, async (c: Context) => {
         await createNewConversation(user.id, conversation_id);
       }
 
-      // Set SSE headers
-      let fullResponse = "";
+      const finalizedConversationId = conversation_id;
 
-      if (isCrisis) {
-        const crisisMessage =
-          "Please seek professional help. You're not alone ❤️.";
-        fullResponse = crisisMessage;
+      const responseStream = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          let fullResponse = "";
+          let shouldPersist = false;
+          let closed = false;
 
-        // Return SSE response
-        return c.text(
-          `data: ${JSON.stringify({ type: "metadata", conversation_id, mood })}\n\n` +
-            `data: ${JSON.stringify({ type: "text", content: crisisMessage })}\n\n` +
-            `data: ${JSON.stringify({ type: "done" })}\n\n`,
-          200,
-          {
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-            Connection: "keep-alive",
-            "Access-Control-Allow-Origin": "*",
-          },
-        );
-      } else {
-        try {
-          // Get conversation history for context using vector search
-          const conversationHistory = await getConversationHistory(
-            conversation_id,
-            user_message,
-          );
-          const systemPrompt = getSystemPrompt(
-            user_message,
-            conversationHistory,
-          );
+          const closeStream = () => {
+            if (!closed) {
+              closed = true;
+              try {
+                controller.close();
+              } catch (err) {
+                console.warn("Failed to close chat stream cleanly:", err);
+              }
+            }
+          };
 
-          // Build SSE response
-          let sseResponse = `data: ${JSON.stringify({ type: "metadata", conversation_id, mood })}\n\n`;
+          const sendEvent = (payload: Record<string, unknown>) => {
+            if (closed || c.req.raw.signal.aborted) {
+              return;
+            }
 
-          // Stream the response
-          for await (const chunk of litellmManager.streamChatResponse(
-            user_message,
-            systemPrompt,
-          )) {
-            fullResponse += chunk;
-            sseResponse += `data: ${JSON.stringify({ type: "text", content: chunk })}\n\n`;
+            try {
+              controller.enqueue(encodeSseEvent(payload));
+            } catch (err) {
+              closed = true;
+              console.warn("Failed to write chat stream event:", err);
+            }
+          };
+
+          try {
+            sendEvent({
+              type: "metadata",
+              conversation_id: finalizedConversationId,
+              mood,
+            });
+
+            if (isCrisis) {
+              const crisisMessage =
+                "Please seek professional help. You're not alone ❤️.";
+              fullResponse = crisisMessage;
+              shouldPersist = true;
+
+              sendEvent({ type: "text", content: crisisMessage });
+              sendEvent({ type: "done" });
+              closeStream();
+              return;
+            }
+
+            const conversationHistory = await getConversationHistory(
+              finalizedConversationId,
+              user_message,
+            );
+            const systemPrompt = getSystemPrompt(
+              user_message,
+              conversationHistory,
+            );
+
+            for await (const chunk of litellmManager.streamChatResponse(
+              user_message,
+              systemPrompt,
+            )) {
+              if (c.req.raw.signal.aborted) {
+                break;
+              }
+
+              fullResponse += chunk;
+              sendEvent({ type: "text", content: chunk });
+            }
+
+            if (!c.req.raw.signal.aborted) {
+              shouldPersist = true;
+              sendEvent({ type: "done" });
+            }
+          } catch (err: unknown) {
+            const error = err as { message?: string };
+            console.error("Chat stream error:", error);
+
+            sendEvent({
+              type: "error",
+              content: error.message || "An error occurred during inference",
+            });
+          } finally {
+            closeStream();
+
+            if (shouldPersist && fullResponse) {
+              storeChat(
+                user.id,
+                finalizedConversationId,
+                user_message,
+                fullResponse,
+                mood,
+                isCrisis,
+              ).catch((err) => {
+                console.error("Failed to store chat:", err);
+              });
+            }
           }
+        },
+        cancel(reason) {
+          console.warn("Chat stream cancelled:", reason);
+        },
+      });
 
-          sseResponse += `data: ${JSON.stringify({ type: "done" })}\n\n`;
-
-          // Store chat asynchronously after response is sent
-          storeChat(
-            user.id,
-            conversation_id,
-            user_message,
-            fullResponse,
-            mood,
-            isCrisis,
-          ).catch((err) => {
-            console.error("Failed to store chat:", err);
-          });
-
-          return c.text(sseResponse, 200, {
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-            Connection: "keep-alive",
-            "Access-Control-Allow-Origin": "*",
-          });
-        } catch (err: unknown) {
-          const error = err as { message?: string };
-          const errorMsg =
-            error.message || "An error occurred during inference";
-
-          return c.text(
-            `data: ${JSON.stringify({ type: "error", content: errorMsg })}\n\n`,
-            500,
-            {
-              "Content-Type": "text/event-stream",
-              "Cache-Control": "no-cache",
-              Connection: "keep-alive",
-            },
-          );
-        }
-      }
+      return new Response(responseStream, {
+        status: 200,
+        headers: sseHeaders,
+      });
     } catch (err: unknown) {
       const error = err as { message?: string };
       const errorMsg = error.message || "An error occurred";

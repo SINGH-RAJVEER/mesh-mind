@@ -10,10 +10,3 @@ export interface MessageEmbeddingRow {
   created_at: Date;
   similarity?: number;
 }
-
-export interface QueryResult<T = unknown> {
-  rows: T[];
-  rowCount: number;
-  command: string;
-  fields: unknown[];
-}

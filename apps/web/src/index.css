@@ -46,8 +46,6 @@
   --sidebar-ring: 217.2 91.2% 59.8%;
 }
 
-
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -120,13 +118,102 @@
   }
 }
 
-
-
 @layer base {
   * {
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .markdown-content {
+    @apply max-w-none text-sm leading-6;
+  }
+
+  .markdown-content > :first-child {
+    @apply mt-0;
+  }
+
+  .markdown-content > :last-child {
+    @apply mb-0;
+  }
+
+  .markdown-content p,
+  .markdown-content ul,
+  .markdown-content ol,
+  .markdown-content pre,
+  .markdown-content blockquote,
+  .markdown-content table {
+    @apply my-3;
+  }
+
+  .markdown-content h1,
+  .markdown-content h2,
+  .markdown-content h3,
+  .markdown-content h4 {
+    @apply mt-4 mb-2 font-semibold leading-snug;
+  }
+
+  .markdown-content h1 {
+    @apply text-xl;
+  }
+
+  .markdown-content h2 {
+    @apply text-lg;
+  }
+
+  .markdown-content h3 {
+    @apply text-base;
+  }
+
+  .markdown-content ul {
+    @apply list-disc pl-5;
+  }
+
+  .markdown-content ol {
+    @apply list-decimal pl-5;
+  }
+
+  .markdown-content li + li {
+    @apply mt-1;
+  }
+
+  .markdown-content a {
+    @apply text-primary underline underline-offset-2 break-all;
+  }
+
+  .markdown-content blockquote {
+    @apply border-l-2 border-border pl-4 italic text-muted-foreground;
+  }
+
+  .markdown-content code {
+    @apply rounded bg-background/70 px-1.5 py-0.5 font-mono text-xs;
+  }
+
+  .markdown-content pre {
+    @apply overflow-x-auto rounded-xl bg-background/80 p-3;
+  }
+
+  .markdown-content pre code {
+    @apply bg-transparent p-0 text-xs leading-6;
+  }
+
+  .markdown-content hr {
+    @apply my-4 border-border;
+  }
+
+  .markdown-content table {
+    @apply w-full border-collapse overflow-hidden rounded-lg text-left;
+  }
+
+  .markdown-content th,
+  .markdown-content td {
+    @apply border border-border px-3 py-2 align-top;
+  }
+
+  .markdown-content th {
+    @apply bg-background/70 font-medium;
   }
 }
