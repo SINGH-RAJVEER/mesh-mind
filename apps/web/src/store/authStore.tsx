@@ -25,6 +25,17 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>();
 
+type SessionResponse =
+  | {
+      user?: {
+        id: string;
+        email: string;
+        name?: string | null;
+        username?: string | null;
+      } | null;
+    }
+  | null;
+
 export function AuthProvider(props: { children: JSX.Element }) {
   const [user, setUser] = createSignal<User | null>(null);
   const [token, setToken] = createSignal<string | null>(
@@ -60,20 +71,36 @@ export function AuthProvider(props: { children: JSX.Element }) {
     }
   };
 
+  const clearAuthState = () => {
+    setUser(null);
+    setToken(null);
+    setSessionAuthenticated(false);
+    localStorage.removeItem("auth-token");
+  };
+
+  const extractSessionUser = (session: SessionResponse) => {
+    if (!session || !session.user) {
+      return null;
+    }
+
+    return session.user;
+  };
+
   const refreshSession = async () => {
     try {
-      const sessionUser = await authAPI.getMe();
+      const session = (await authAPI.getSession()) as SessionResponse;
+      const sessionUser = extractSessionUser(session);
+
+      if (!sessionUser) {
+        clearAuthState();
+        return false;
+      }
 
       setUser(normalizeUser(sessionUser));
       setSessionAuthenticated(true);
       return true;
     } catch (_error) {
-      setSessionAuthenticated(false);
-
-      if (!token()) {
-        setUser(null);
-      }
-
+      clearAuthState();
       return false;
     } finally {
       setIsReady(true);
@@ -85,17 +112,14 @@ export function AuthProvider(props: { children: JSX.Element }) {
   });
 
   const logout = () => {
-    setUser(null);
-    setToken(null);
-    setSessionAuthenticated(false);
-    localStorage.removeItem("auth-token");
+    clearAuthState();
   };
 
   const value: AuthContextType = {
     user,
     token,
     isReady,
-    isAuthenticated: () => sessionAuthenticated() || !!token(),
+    isAuthenticated: () => sessionAuthenticated() && !!user(),
     updateAuth,
     refreshSession,
     logout,

@@ -1,12 +1,10 @@
 services:
   postgres:
+    env_file:
+      - ../../.env
     image: pgvector/pgvector:pg16
     container_name: mindscribe-postgres-prod
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-mindscribe}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
       - ../init-pgvector.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -19,7 +17,23 @@ services:
     networks:
       - mindscribe-network
 
+  litellm:
+    env_file: &workspace-env-file
+      - ../../.env
+    image: ghcr.io/berriai/litellm:main-stable
+    container_name: mindscribe-litellm-prod
+    restart: unless-stopped
+    command:
+      ["--config", "/app/config.yaml", "--port", "4000", "--host", "0.0.0.0"]
+    expose:
+      - "4000"
+    volumes:
+      - ../litellm/config.yaml:/app/config.yaml:ro
+    networks:
+      - mindscribe-network
+
   api:
+    env_file: *workspace-env-file
     build:
       context: ../..
       dockerfile: ./docker/prod/Dockerfile.api.prod
@@ -27,29 +41,22 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      MINDSCRIBE_RUNTIME: docker
       PORT: 8000
       BACKEND_URL: ${BACKEND_URL:-http://localhost/api}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
-      LLM_BASE_URL: ${LLM_BASE_URL}
-      LLM_MODEL: ${LLM_MODEL}
-      GROQ_API_KEY: ${GROQ_API_KEY}
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-      LLM_EMBEDDING_MODEL: ${LLM_EMBEDDING_MODEL:-text-embedding-004}
-      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
-      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
-      POSTGRES_DB: ${POSTGRES_DB:-mindscribe}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
-      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://litellm:4000/v1}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
     expose:
       - "8000"
     depends_on:
       postgres:
         condition: service_healthy
+      litellm:
+        condition: service_started
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - mindscribe-network
     healthcheck:
@@ -66,13 +73,14 @@ services:
       start_period: 40s
 
   web:
+    env_file: *workspace-env-file
     build:
       context: ../..
       dockerfile: ./docker/prod/Dockerfile.web.prod
       args:
         VITE_API_URL: ${VITE_API_URL:-/api}
-        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
-        VITE_GITHUB_CLIENT_ID: ${VITE_GITHUB_CLIENT_ID}
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+        VITE_GITHUB_CLIENT_ID: ${VITE_GITHUB_CLIENT_ID:-}
     container_name: mindscribe-web-prod
     restart: unless-stopped
     ports:

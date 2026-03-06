@@ -1,10 +1,12 @@
 import { createSignal } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import { registerUser } from "../api/authApi";
+import { useAuthStore } from "../store/authStore";
 import { toast } from "../components/Toast";
 
 export const useRegister = () => {
   const navigate = useNavigate();
+  const { refreshSession } = useAuthStore();
   const [isPending, setIsPending] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
 
@@ -17,9 +19,12 @@ export const useRegister = () => {
     setError(null);
 
     try {
-      const data = await registerUser(userData);
-      toast.success(data.message || "Registration successful!");
-      navigate("/login");
+      await registerUser(userData);
+
+      const authenticated = await refreshSession();
+
+      toast.success("Registration successful!");
+      navigate(authenticated ? "/dashboard" : "/login");
     } catch (err: unknown) {
       const errorMsg =
         err instanceof Error ? err.message : "Registration failed!";

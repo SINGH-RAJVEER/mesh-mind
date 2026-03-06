@@ -8,6 +8,7 @@ This repository now has separate Docker workflows for development and production
 ## Services
 
 - `postgres`: PostgreSQL 16 with `pgvector`
+- `litellm`: OpenAI-compatible proxy for chat and embeddings
 - `api`: Bun dev server for `apps/api`
 - `web`: Vite dev server for `apps/web`
 
@@ -17,10 +18,12 @@ The development workflow lives in [docker/dev/docker-compose.dev.yml](../docker/
 
 ### Development quick start
 
-1. Create a root `.env` file with the environment variables required by the API and OAuth providers. Use [.env.example](../.env.example) as the starting point and make sure `BETTER_AUTH_SECRET`, database credentials, `LLM_BASE_URL`, `LLM_MODEL`, `LLM_EMBEDDING_MODEL`, `GROQ_API_KEY`, `GEMINI_API_KEY`, OAuth credentials, and the frontend API variables are populated.
+1. Create a root `.env` file with the environment variables required by the API and OAuth providers. Use [.env.example](../.env.example) as the starting point and make sure `BETTER_AUTH_SECRET`, database credentials, `LLM_MODEL`, `LLM_EMBEDDING_MODEL`, `GROQ_API_KEY`, `GEMINI_API_KEY`, OAuth credentials, and the frontend API variables are populated.
 2. All services read configuration from the workspace root `.env` only. Package-level `.env` files and `.env.local` files are ignored.
 3. The API and database package scripts reference the root `.env` directly, so no `env.ts` loader files are needed.
-4. Start the stack:
+4. If `.env` keeps `POSTGRES_HOST=localhost`, containerized runs automatically remap that value to the Docker service host `postgres` so the API can still reach PostgreSQL.
+5. Docker defaults the API to the internal LiteLLM service at `http://litellm:4000/v1`, so `LLM_BASE_URL` usually does not need to be set for containerized runs.
+6. Start the stack:
 
 ```bash
 docker compose -f docker/dev/docker-compose.dev.yml up --build
@@ -30,7 +33,11 @@ docker compose -f docker/dev/docker-compose.dev.yml up --build
 
 - Frontend: <http://localhost:3000>
 - API: <http://localhost:8000>
+- LiteLLM: <http://localhost:4000>
 - PostgreSQL: localhost:5432
+
+Inside the Docker network, services connect to PostgreSQL through the host name `postgres`, not `localhost`.
+Inside the Docker network, services connect to LiteLLM through the host name `litellm`.
 
 Stop the stack:
 
@@ -136,7 +143,7 @@ The production workflow lives in [docker/prod/docker-compose.prod.yml](../docker
 
 ### Production quick start
 
-1. Set production-ready values in `.env`, especially `BETTER_AUTH_SECRET`, database credentials, `LLM_BASE_URL`, `LLM_MODEL`, `LLM_EMBEDDING_MODEL`, `GROQ_API_KEY`, `GEMINI_API_KEY`, OAuth credentials, `FRONTEND_URL`, `BACKEND_URL`, and `VITE_API_URL`.
+1. Set production-ready values in `.env`, especially `BETTER_AUTH_SECRET`, database credentials, `LLM_MODEL`, `LLM_EMBEDDING_MODEL`, `GROQ_API_KEY`, `GEMINI_API_KEY`, OAuth credentials, `FRONTEND_URL`, `BACKEND_URL`, and `VITE_API_URL`.
 2. Start the production stack:
 
 ```bash

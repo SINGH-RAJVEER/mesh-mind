@@ -1,11 +1,9 @@
-import axios from "axios";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import axiosInstance from "./axiosInstance";
 
 const authAPI = {
   // Sign up with email and password
   signUp: async (email: string, password: string, name?: string) => {
-    const response = await axios.post(`${API_BASE}/auth/sign-up`, {
+    const response = await axiosInstance.post("/auth/sign-up/email", {
       email,
       password,
       name,
@@ -15,7 +13,7 @@ const authAPI = {
 
   // Sign in with email and password
   signIn: async (email: string, password: string) => {
-    const response = await axios.post(`${API_BASE}/auth/sign-in`, {
+    const response = await axiosInstance.post("/auth/sign-in/email", {
       email,
       password,
     });
@@ -24,29 +22,25 @@ const authAPI = {
 
   // Sign out
   signOut: async () => {
-    const response = await axios.post(`${API_BASE}/auth/sign-out`);
+    const response = await axiosInstance.post("/auth/sign-out");
     return response.data;
   },
 
   // Get current session
   getSession: async () => {
-    const response = await axios.get(`${API_BASE}/auth/session`, {
-      withCredentials: true,
-    });
+    const response = await axiosInstance.get("/auth/get-session");
     return response.data;
   },
 
   // Get current user
   getMe: async () => {
-    const response = await axios.get(`${API_BASE}/auth/me`, {
-      withCredentials: true,
-    });
+    const response = await axiosInstance.get("/auth/me");
     return response.data;
   },
 
   // Get OAuth provider URL
   getOAuthUrl: async (provider: "google" | "github", redirectTo = "/") => {
-    const response = await axios.get(`${API_BASE}/auth/oauth/url/${provider}`, {
+    const response = await axiosInstance.get(`/auth/oauth/url/${provider}`, {
       params: { redirect_to: redirectTo },
     });
     return response.data;
@@ -54,13 +48,16 @@ const authAPI = {
 
   // Start OAuth flow
   signInWithOAuth: async (provider: "google" | "github") => {
-    const { authURL } = await authAPI.getOAuthUrl(provider, window.location.href);
+    const { authURL } = await authAPI.getOAuthUrl(
+      provider,
+      window.location.href,
+    );
     window.location.href = authURL;
   },
 
   // Get redirect URL after OAuth callback
   getAuthRedirectUrl: (provider: string) => {
-    return `${API_BASE}/auth/oauth/callback/${provider}`;
+    return `${axiosInstance.defaults.baseURL || "http://localhost:8000"}/auth/oauth/callback/${provider}`;
   },
 };
 

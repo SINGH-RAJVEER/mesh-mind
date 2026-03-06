@@ -1,21 +1,28 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { logger } from "hono/logger";
 import { serve } from "@hono/node-server";
 import { chatbotRouter } from "./routes/chat";
 import { authRouter } from "./routes/auth";
 import { healthCheck } from "@mindscribe/database";
+import { ALLOWED_FRONTEND_ORIGINS, isAllowedFrontendOrigin } from "./config";
 
 const app = new Hono();
 const PORT = parseInt(process.env.PORT || "8000", 10);
-const frontendOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
 
 app.use(
   "*",
   cors({
-    origin: frontendOrigin,
+    origin: (origin) => {
+      if (origin && isAllowedFrontendOrigin(origin)) return origin;
+      return undefined;
+    },
     credentials: true,
+    allowHeaders: ["Content-Type", "Authorization"],
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   }),
 );
+app.use("*", logger());
 
 app.route("/auth", authRouter);
 app.route("/chat", chatbotRouter);
@@ -48,6 +55,9 @@ serve(
   },
   async (info) => {
     console.log(`API running on port ${info.port}`);
+    console.log(
+      `Allowed frontend origins: ${ALLOWED_FRONTEND_ORIGINS.join(", ")}`,
+    );
     console.log(`LLM Model: ${effectiveLlmModel}`);
     console.log(`Embedding Model: ${effectiveEmbeddingModel}`);
 

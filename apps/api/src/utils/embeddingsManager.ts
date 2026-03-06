@@ -1,15 +1,53 @@
+import { existsSync } from "node:fs";
 import OpenAI from "openai";
+
+const stripTrailingSlash = (value: string) => value.replace(/\/+$/, "");
+
+const resolveLlmBaseUrl = () => {
+  const configuredValue = process.env.LLM_BASE_URL?.trim();
+
+  if (configuredValue) {
+    return stripTrailingSlash(configuredValue);
+  }
+
+  const runningInDocker =
+    process.env.MINDSCRIBE_RUNTIME === "docker" || existsSync("/.dockerenv");
+
+  return runningInDocker
+    ? "http://litellm:4000/v1"
+    : "http://localhost:4000/v1";
+};
+
+const toErrorMessage = (err: unknown, baseURL: string) => {
+  if (
+    err &&
+    typeof err === "object" &&
+    "status" in err &&
+    err.status === 404
+  ) {
+    return `Embedding endpoint returned 404. Check LLM_BASE_URL (current: ${baseURL}) and confirm an OpenAI-compatible server with embeddings is running there.`;
+  }
+
+  if (err instanceof Error) {
+    return err.message;
+  }
+
+  return "Unknown embeddings error";
+};
 
 class EmbeddingsManager {
   private client: OpenAI;
   private embeddingModel: string;
+  private baseURL: string;
 
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY || "not-needed";
-    const baseURL = process.env.LLM_BASE_URL || "http://localhost:8000/v1";
+    const baseURL = resolveLlmBaseUrl();
 
     this.embeddingModel =
       process.env.LLM_EMBEDDING_MODEL || "text-embedding-004";
+
+    this.baseURL = baseURL;
 
     this.client = new OpenAI({
       apiKey,
@@ -40,9 +78,10 @@ class EmbeddingsManager {
       }
 
       throw new Error("No embedding data received");
-    } catch (err) {
+    } catch (err: unknown) {
+      const message = toErrorMessage(err, this.baseURL);
       console.error("Error generating embedding:", err);
-      throw err;
+      throw new Error(message);
     }
   }
 
@@ -65,9 +104,10 @@ class EmbeddingsManager {
       }
 
       throw new Error("No embedding data received");
-    } catch (err) {
+    } catch (err: unknown) {
+      const message = toErrorMessage(err, this.baseURL);
       console.error("Error generating embeddings:", err);
-      throw err;
+      throw new Error(message);
     }
   }
 

@@ -1,5 +1,5 @@
 import { createSignal, createEffect, For, Show, onMount } from "solid-js";
-import { Send, Trash2, Plus, LogOut, Loader } from "lucide-solid";
+import { Send, Trash2, Plus, LogOut, Loader, ChevronLeft, ChevronRight } from "lucide-solid";
 import {
   useFetchChatHistory,
   useSendMessageStream,
@@ -43,7 +43,7 @@ function Dashboard() {
     }
   });
 
-  const handleSendMessage = (e: Event) => {
+  const handleSendMessage = async (e: Event) => {
     e.preventDefault();
     const currentPrompt = prompt().trim();
     if (!currentPrompt || loading() || isMutationPending()) return;
@@ -51,13 +51,17 @@ function Dashboard() {
     setPrompt("");
     setStreamingMessage("");
 
-    sendMessage({
-      message: currentPrompt,
-      conversationId: selectedConversation()?.id,
-      onChunk: (chunk: string) => {
-        setStreamingMessage((prev) => prev + chunk);
-      },
-    });
+    try {
+      await sendMessage({
+        message: currentPrompt,
+        conversationId: selectedConversation()?.id,
+        onChunk: (chunk: string) => {
+          setStreamingMessage((prev) => prev + chunk);
+        },
+      });
+    } catch {
+      setStreamingMessage("");
+    }
   };
 
   const startNewConversation = () => {
@@ -127,15 +131,26 @@ function Dashboard() {
       <div className="flex flex-1 flex-col h-screen">
         {/* Header */}
         <header className="bg-card border-b border-border shadow-sm flex justify-between items-center px-6 py-4 flex-shrink-0">
-          <div className="flex items-center gap-4">
-            <img
-              src={headerImg}
-              alt="MindScribe Logo"
-              className="h-10 w-auto object-cover"
-            />
-            <h1 className="text-2xl font-bold text-foreground hidden sm:block">
-              MindScribe
-            </h1>
+          <div className="flex items-center">
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed((prev) => !prev)}
+              className="group relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-md transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              aria-label={sidebarCollapsed() ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <img
+                src={headerImg}
+                alt="MindScribe Logo"
+                className="h-8 w-auto object-contain transition-transform duration-200 group-hover:scale-95"
+              />
+              <span className="absolute inset-0 flex items-center justify-center bg-background/85 text-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                {sidebarCollapsed() ? (
+                  <ChevronRight className="h-5 w-5" />
+                ) : (
+                  <ChevronLeft className="h-5 w-5" />
+                )}
+              </span>
+            </button>
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />

@@ -1,11 +1,32 @@
 import { defineConfig } from "drizzle-kit";
 
+declare const process: {
+  env: Record<string, string | undefined>;
+};
+
+const DOCKER_LOCALHOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+
+function resolvePostgresHost(): string {
+  const configuredHost = process.env.POSTGRES_HOST?.trim();
+  const runningInDocker = process.env.MINDSCRIBE_RUNTIME === "docker";
+
+  if (!configuredHost) {
+    return runningInDocker ? "postgres" : "localhost";
+  }
+
+  if (runningInDocker && DOCKER_LOCALHOSTS.has(configuredHost)) {
+    return "postgres";
+  }
+
+  return configuredHost;
+}
+
 export default defineConfig({
   schema: "./src/schema.ts",
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
-    host: process.env.POSTGRES_HOST || "localhost",
+    host: resolvePostgresHost(),
     port: parseInt(process.env.POSTGRES_PORT || "5432"),
     user: process.env.POSTGRES_USER || "postgres",
     password: process.env.POSTGRES_PASSWORD || "",

@@ -6,7 +6,7 @@ import { toast } from "../components/Toast";
 
 export const useLogin = () => {
   const navigate = useNavigate();
-  const { updateAuth } = useAuthStore();
+  const { refreshSession } = useAuthStore();
   const [isPending, setIsPending] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
 
@@ -15,12 +15,14 @@ export const useLogin = () => {
     setError(null);
 
     try {
-      const data = await loginUser(credentials);
-      const { user, access_token } = data;
+      await loginUser(credentials);
+      const authenticated = await refreshSession();
 
-      updateAuth(user, access_token);
+      if (!authenticated) {
+        throw new Error("Unable to establish an authenticated session.");
+      }
 
-      toast.success(data.message || "Login successful!");
+      toast.success("Login successful!");
       navigate("/dashboard");
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : "Login failed!";

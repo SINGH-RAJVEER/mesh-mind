@@ -16,6 +16,7 @@
 ### `apps/web`
 
 - `src/components` — UI screens and reusable primitives
+- `src/components/ui/sidebar.tsx` — branded sidebar header with logo-first expand and collapse affordance
 - `src/hooks` — auth and chat hooks
 - `src/store` — client state
 - `src/api` — frontend API clients

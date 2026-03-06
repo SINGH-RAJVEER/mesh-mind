@@ -1,12 +1,50 @@
+import { existsSync } from "node:fs";
 import OpenAI from "openai";
+
+const stripTrailingSlash = (value: string) => value.replace(/\/+$/, "");
+
+const resolveLlmBaseUrl = () => {
+  const configuredValue = process.env.LLM_BASE_URL?.trim();
+
+  if (configuredValue) {
+    return stripTrailingSlash(configuredValue);
+  }
+
+  const runningInDocker =
+    process.env.MINDSCRIBE_RUNTIME === "docker" || existsSync("/.dockerenv");
+
+  return runningInDocker
+    ? "http://litellm:4000/v1"
+    : "http://localhost:4000/v1";
+};
+
+const toErrorMessage = (err: unknown, baseURL: string) => {
+  if (
+    err &&
+    typeof err === "object" &&
+    "status" in err &&
+    err.status === 404
+  ) {
+    return `LLM endpoint returned 404. Check LLM_BASE_URL (current: ${baseURL}) and confirm an OpenAI-compatible server is running there.`;
+  }
+
+  if (err instanceof Error) {
+    return err.message;
+  }
+
+  return "Unknown LLM error";
+};
 
 class LiteLLMManager {
   private client: OpenAI;
+  private baseURL: string;
 
   constructor() {
     const apiKey = process.env.GROQ_API_KEY || "not-needed";
-    const baseURL = process.env.LLM_BASE_URL || "http://localhost:8000/v1";
+    const baseURL = resolveLlmBaseUrl();
     const defaultModel = process.env.LLM_MODEL || "gpt-3.5-turbo";
+
+    this.baseURL = baseURL;
 
     this.client = new OpenAI({
       apiKey,
@@ -55,9 +93,10 @@ class LiteLLMManager {
           yield content;
         }
       }
-    } catch (err) {
+    } catch (err: unknown) {
+      const message = toErrorMessage(err, this.baseURL);
       console.error("Error in streamChatResponse:", err);
-      throw err;
+      throw new Error(message);
     }
   }
 
@@ -93,9 +132,10 @@ class LiteLLMManager {
       }
 
       return "";
-    } catch (err) {
+    } catch (err: unknown) {
+      const message = toErrorMessage(err, this.baseURL);
       console.error("Error in getChatResponse:", err);
-      throw err;
+      throw new Error(message);
     }
   }
 

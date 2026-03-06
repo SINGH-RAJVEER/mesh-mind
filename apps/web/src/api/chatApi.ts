@@ -18,13 +18,12 @@ export const sendMessageStream = async function* ({
 }) {
   try {
     const response = await fetch(
-      `${axiosInstance.defaults.baseURL || "http://localhost:8000"}/chat/`,
+      `${axiosInstance.defaults.baseURL || "http://localhost:8000"}/chat`,
       {
         method: "POST",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("auth-token") || localStorage.getItem("authToken") || ""}`,
         },
         body: JSON.stringify({
           user_message: message,

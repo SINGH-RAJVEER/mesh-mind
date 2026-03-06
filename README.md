@@ -93,8 +93,9 @@ Important backend variables:
 - `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
 - `BETTER_AUTH_SECRET`
-- `LLM_BASE_URL`
 - `LLM_MODEL`
 - `LLM_EMBEDDING_MODEL`
+
+Docker Compose wires the API to the internal `litellm` service automatically, so `LLM_BASE_URL` usually does not need to be set in `.env` for containerized runs.
 
 See [docs/DOCKER_SETUP.md](docs/DOCKER_SETUP.md), [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md), and [docs/VECTOR_EMBEDDINGS.md](docs/VECTOR_EMBEDDINGS.md) for details.

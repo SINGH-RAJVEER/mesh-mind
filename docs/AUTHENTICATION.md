@@ -52,6 +52,8 @@ Better Auth expects relational auth tables with fields such as:
 
 These are defined in [packages/database/src/schema.ts](../packages/database/src/schema.ts).
 
+Auth table primary keys are UUIDs. Better Auth is configured to generate UUID identifiers before inserts so they match the PostgreSQL schema.
+
 ## Local setup
 
 1. Start PostgreSQL:
@@ -78,12 +80,23 @@ cd apps/api && bun run dev
 - `/auth/me` — current session user
 - `/auth/oauth/url/:provider` — provider authorize URL helper
 
+Email/password flows use the Better Auth endpoints under `/auth`:
+
+- `POST /auth/sign-up/email`
+- `POST /auth/sign-in/email`
+- `POST /auth/sign-out`
+- `GET /auth/get-session`
+
 ## Frontend behavior
 
 - OAuth buttons in the login and registration screens redirect through `/auth/oauth/url/:provider`.
 - Google uses the standard multicolor Google mark in the provider button to match the OAuth entry point.
-- After the provider redirects back, the frontend callback page restores the Better Auth session by calling `/auth/me` with credentials enabled.
-- Authenticated API requests rely on the Better Auth session cookie, so the API must allow credentialed CORS requests from `FRONTEND_URL`.
+- After the provider redirects back, the frontend callback page restores the Better Auth session by calling `GET /auth/get-session` with credentials enabled and reading the returned `user` object.
+- Frontend route protection should rely on the restored Better Auth session user, not on any legacy local storage token.
+- Authenticated API requests rely on the Better Auth session cookie, so the API must allow credentialed CORS requests from the active frontend origin.
+- Chat streaming requests must use `/chat` without a trailing slash because the Hono router is mounted at `/chat` and the stream handler is registered on `/` within that router.
+- `FRONTEND_URL` can be a comma-separated list of trusted frontend origins when you need to support multiple dev hosts, for example `http://localhost:5173,http://localhost:3000`.
+- Local development accepts both `http://localhost:5173` and `http://localhost:3000` by default to cover direct Vite usage and the Docker web service.
 
 ## Notes
 

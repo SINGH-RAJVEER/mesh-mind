@@ -1,0 +1,10 @@
+model_list:
+  - model_name: text-embedding-004
+    litellm_params:
+      model: gemini/text-embedding-004
+      api_key: os.environ/GEMINI_API_KEY
+
+  - model_name: kimi-k2-instruct-0905
+    litellm_params:
+      model: groq/moonshotai/kimi-k2-instruct-0905
+      api_key: os.environ/GROQ_API_KEY
