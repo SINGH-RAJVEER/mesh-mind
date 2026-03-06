@@ -21,9 +21,10 @@ export const sendMessageStream = async function* ({
       `${axiosInstance.defaults.baseURL || "http://localhost:8000"}/chat/`,
       {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("authToken") || ""}`,
+          Authorization: `Bearer ${localStorage.getItem("auth-token") || localStorage.getItem("authToken") || ""}`,
         },
         body: JSON.stringify({
           user_message: message,

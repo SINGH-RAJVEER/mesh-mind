@@ -1,11 +1,33 @@
 import { createSignal, Show } from "solid-js";
 import { A } from "@solidjs/router";
-import { Heart, Github } from "lucide";
+import { Heart, Github } from "lucide-solid";
 import { useLogin } from "../hooks/useLogin";
+import authAPI from "../api/authAPI";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import ThemeToggle from "./ThemeToggle";
 import { toast } from "./Toast";
+
+const GoogleLogo = () => (
+  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
+    <path
+      fill="#4285F4"
+      d="M23.49 12.27c0-.79-.07-1.55-.2-2.27H12v4.3h6.44a5.5 5.5 0 0 1-2.39 3.6v2.99h3.87c2.27-2.09 3.57-5.18 3.57-8.62Z"
+    />
+    <path
+      fill="#34A853"
+      d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.87-2.99c-1.07.72-2.44 1.15-4.08 1.15-3.13 0-5.79-2.11-6.74-4.96H1.26v3.09A12 12 0 0 0 12 24Z"
+    />
+    <path
+      fill="#FBBC05"
+      d="M5.26 14.29A7.2 7.2 0 0 1 4.88 12c0-.79.14-1.56.38-2.29V6.62H1.26A12 12 0 0 0 0 12c0 1.94.46 3.78 1.26 5.38l4-3.09Z"
+    />
+    <path
+      fill="#EA4335"
+      d="M12 4.77c1.76 0 3.34.61 4.58 1.8l3.43-3.43C17.95 1.2 15.23 0 12 0A12 12 0 0 0 1.26 6.62l4 3.09c.95-2.85 3.61-4.94 6.74-4.94Z"
+    />
+  </svg>
+);
 
 function Login() {
   const [email, setEmail] = createSignal("");
@@ -18,16 +40,12 @@ function Login() {
     loginMutate({ email: email(), password: password() });
   };
 
-  const handleGitHubLogin = async () => {
+  const handleOAuthLogin = async (provider: "google" | "github") => {
     try {
       setIsLoadingOAuth(true);
-      const CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID;
-      const REDIRECT_URI = `${window.location.origin}/auth/github/callback`;
-
-      const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=user:email`;
-      window.location.href = githubAuthUrl;
+      await authAPI.signInWithOAuth(provider);
     } catch (_error) {
-      toast.error("Failed to redirect to GitHub");
+      toast.error(`Failed to redirect to ${provider}`);
       setIsLoadingOAuth(false);
     }
   };
@@ -107,14 +125,23 @@ function Login() {
         {/* OAuth Buttons */}
         <div className="space-y-3">
           <Show when={GOOGLE_CLIENT_ID}>
-            <div id="google-oauth-container" className="w-full" />
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full rounded-lg flex items-center justify-center gap-2"
+              onClick={() => handleOAuthLogin("google")}
+              disabled={isLoadingOAuth() || isPending()}
+            >
+                <GoogleLogo />
+                <span>Google</span>
+            </Button>
           </Show>
 
           <Button
             type="button"
             variant="outline"
             className="w-full rounded-lg flex items-center justify-center gap-2"
-            onClick={handleGitHubLogin}
+            onClick={() => handleOAuthLogin("github")}
             disabled={isLoadingOAuth() || isPending()}
           >
             <Github className="h-5 w-5" />

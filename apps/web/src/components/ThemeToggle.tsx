@@ -1,37 +1,37 @@
-import { createSignal, onMount } from "solid-js";
+import { createEffect, createSignal } from "solid-js";
 import { Button } from "./ui/button";
-import { Sun, Moon } from "lucide";
+import { Sun, Moon } from "lucide-solid";
 
 const getSystemTheme = () =>
   window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 
-export default function ThemeToggle() {
-  const [theme, setTheme] = createSignal(() => {
-    if (typeof window === "undefined") return "light";
-    return localStorage.getItem("theme") || getSystemTheme();
-  });
+const getInitialTheme = () => {
+  if (typeof window === "undefined") return "light";
+  const savedTheme = localStorage.getItem("theme");
+  return savedTheme === "dark" || savedTheme === "light"
+    ? savedTheme
+    : getSystemTheme();
+};
 
-  onMount(() => {
+export default function ThemeToggle() {
+  const [theme, setTheme] = createSignal<"dark" | "light">(getInitialTheme());
+
+  createEffect(() => {
     const root = window.document.documentElement;
-    if (theme() === "dark") {
+    const currentTheme = theme();
+
+    if (currentTheme === "dark") {
       root.classList.add("dark");
     } else {
       root.classList.remove("dark");
     }
-    localStorage.setItem("theme", theme());
+
+    localStorage.setItem("theme", currentTheme);
   });
 
   const toggleTheme = () => {
     const newTheme = theme() === "dark" ? "light" : "dark";
     setTheme(newTheme);
-
-    const root = window.document.documentElement;
-    if (newTheme === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
-    localStorage.setItem("theme", newTheme);
   };
 
   return (

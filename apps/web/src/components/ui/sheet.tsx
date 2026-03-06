@@ -1,6 +1,6 @@
 import { type JSX, splitProps } from "solid-js";
 import { cn } from "./utils";
-import { X } from "lucide";
+import { X } from "lucide-solid";
 
 const Sheet = (props: { children: JSX.Element }) => {
   return <>{props.children}</>;

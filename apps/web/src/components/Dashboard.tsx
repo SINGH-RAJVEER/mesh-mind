@@ -1,5 +1,5 @@
 import { createSignal, createEffect, For, Show, onMount } from "solid-js";
-import { Send, Trash2, Plus, LogOut, Loader } from "lucide";
+import { Send, Trash2, Plus, LogOut, Loader } from "lucide-solid";
 import {
   useFetchChatHistory,
   useSendMessageStream,

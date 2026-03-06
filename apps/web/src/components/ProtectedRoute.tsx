@@ -1,22 +1,24 @@
 import type { RouteSectionProps } from "@solidjs/router";
 import { Navigate } from "@solidjs/router";
-import { createSignal, Show, onMount } from "solid-js";
+import { Loader } from "lucide-solid";
+import { Show } from "solid-js";
 import { useAuthStore } from "../store/authStore";
 
 const ProtectedRoute = (props: RouteSectionProps) => {
-  const { isAuthenticated } = useAuthStore();
-  const [mounted, setMounted] = createSignal(false);
-
-  onMount(() => {
-    setMounted(true);
-  });
+  const { isAuthenticated, isReady } = useAuthStore();
 
   return (
     <Show
-      when={mounted() && isAuthenticated()}
-      fallback={<Navigate href="/login" />}
+      when={isReady()}
+      fallback={
+        <div class="flex min-h-screen items-center justify-center bg-background">
+          <Loader class="h-10 w-10 animate-spin text-primary" />
+        </div>
+      }
     >
-      {props.children}
+      <Show when={isAuthenticated()} fallback={<Navigate href="/login" />}>
+        {props.children}
+      </Show>
     </Show>
   );
 };

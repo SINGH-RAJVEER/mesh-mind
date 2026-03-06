@@ -19,6 +19,11 @@ The API does not use MongoDB, Mongoose, or JWT session storage.
 - Google OAuth
 - GitHub OAuth
 
+OAuth sign-in now uses a shared frontend callback route:
+
+- `/auth/callback` for Better Auth redirects
+- `/auth/github/callback` remains as a compatibility alias in the web app
+
 ## Important variables
 
 ```env
@@ -72,6 +77,13 @@ cd apps/api && bun run dev
 - `/auth/*` — Better Auth handler
 - `/auth/me` — current session user
 - `/auth/oauth/url/:provider` — provider authorize URL helper
+
+## Frontend behavior
+
+- OAuth buttons in the login and registration screens redirect through `/auth/oauth/url/:provider`.
+- Google uses the standard multicolor Google mark in the provider button to match the OAuth entry point.
+- After the provider redirects back, the frontend callback page restores the Better Auth session by calling `/auth/me` with credentials enabled.
+- Authenticated API requests rely on the Better Auth session cookie, so the API must allow credentialed CORS requests from `FRONTEND_URL`.
 
 ## Notes
 

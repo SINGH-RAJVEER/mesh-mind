@@ -8,9 +8,9 @@
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:generate": "bun --env-file=../../.env x drizzle-kit generate",
+    "db:push": "bun --env-file=../../.env x drizzle-kit push",
+    "db:studio": "bun --env-file=../../.env x drizzle-kit studio"
   },
   "dependencies": {
     "postgres": "^3.4.3",

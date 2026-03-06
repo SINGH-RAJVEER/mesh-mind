@@ -2,6 +2,7 @@ import type { RouteSectionProps } from "@solidjs/router";
 import { Router, Route, Navigate } from "@solidjs/router";
 import Register from "./components/Register";
 import Login from "./components/Login";
+import AuthCallback from "./components/AuthCallback";
 import GitHubCallback from "./components/GitHubCallback";
 import Dashboard from "./components/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -20,6 +21,7 @@ function App() {
         <Router root={AppShell}>
           <Route path="/register" component={Register} />
           <Route path="/login" component={Login} />
+          <Route path="/auth/callback" component={AuthCallback} />
           <Route path="/auth/github/callback" component={GitHubCallback} />
 
           <Route component={ProtectedRoute}>

@@ -18,13 +18,15 @@ The development workflow lives in [docker/dev/docker-compose.dev.yml](../docker/
 ### Development quick start
 
 1. Create a root `.env` file with the environment variables required by the API and OAuth providers. Use [.env.example](../.env.example) as the starting point and make sure `BETTER_AUTH_SECRET`, database credentials, `LLM_BASE_URL`, `LLM_MODEL`, `LLM_EMBEDDING_MODEL`, `GROQ_API_KEY`, `GEMINI_API_KEY`, OAuth credentials, and the frontend API variables are populated.
-2. Start the stack:
+2. All services read configuration from the workspace root `.env` only. Package-level `.env` files and `.env.local` files are ignored.
+3. The API and database package scripts reference the root `.env` directly, so no `env.ts` loader files are needed.
+4. Start the stack:
 
 ```bash
 docker compose -f docker/dev/docker-compose.dev.yml up --build
 ```
 
-1. Open the app:
+5. Open the app:
 
 - Frontend: <http://localhost:3000>
 - API: <http://localhost:8000>

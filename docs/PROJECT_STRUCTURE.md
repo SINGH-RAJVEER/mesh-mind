@@ -19,6 +19,7 @@
 - `src/hooks` — auth and chat hooks
 - `src/store` — client state
 - `src/api` — frontend API clients
+- frontend UI uses Solid-specific packages, including `@solidjs/router` and `lucide-solid`
 
 ## Packages
 
