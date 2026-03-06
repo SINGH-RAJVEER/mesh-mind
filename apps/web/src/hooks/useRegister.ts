@@ -1,19 +1,34 @@
-import { useMutation } from "@tanstack/react-query";
+import { createSignal } from "solid-js";
+import { useNavigate } from "@solidjs/router";
 import { registerUser } from "../api/authApi";
-import { useNavigate } from "react-router-dom";
-import { showToast } from "../components/Toast";
+import { toast } from "../components/Toast";
 
 export const useRegister = () => {
   const navigate = useNavigate();
+  const [isPending, setIsPending] = createSignal(false);
+  const [error, setError] = createSignal<string | null>(null);
 
-  return useMutation({
-    mutationFn: registerUser,
-    onSuccess: (data) => {
-      showToast(data.message, "success");
+  const mutate = async (userData: {
+    username: string;
+    email: string;
+    password: string;
+  }) => {
+    setIsPending(true);
+    setError(null);
+
+    try {
+      const data = await registerUser(userData);
+      toast.success(data.message || "Registration successful!");
       navigate("/login");
-    },
-    onError: (err) => {
-      showToast(err.message || "Registration failed!", "error");
-    },
-  });
+    } catch (err: unknown) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Registration failed!";
+      setError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  return { mutate, isPending, error };
 };

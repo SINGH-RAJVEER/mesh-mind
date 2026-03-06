@@ -1,41 +1,21 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
-import { FaGithub, FaHeartbeat } from "react-icons/fa";
+import { createSignal, Show } from "solid-js";
+import { A } from "@solidjs/router";
+import { Heart, Github } from "lucide";
 import { useLogin } from "../hooks/useLogin";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import ThemeToggle from "./ThemeToggle";
-import axiosInstance from "../api/axiosInstance";
-import { showToast } from "./Toast";
+import { toast } from "./Toast";
 
 function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoadingOAuth, setIsLoadingOAuth] = useState(false);
+  const [email, setEmail] = createSignal("");
+  const [password, setPassword] = createSignal("");
+  const [isLoadingOAuth, setIsLoadingOAuth] = createSignal(false);
   const { mutate: loginMutate, isPending } = useLogin();
-  const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = (e: Event) => {
     e.preventDefault();
-    loginMutate({ email, password });
-  };
-
-  const handleGoogleSuccess = async (credentialResponse: any) => {
-    try {
-      setIsLoadingOAuth(true);
-      const response = await axiosInstance.post("/auth/google/callback", {
-        token: credentialResponse.credential,
-      });
-
-      localStorage.setItem("authToken", response.data.access_token);
-      showToast(`Welcome back, ${response.data.user.username}!`, "success");
-      navigate("/dashboard");
-    } catch (error: any) {
-      showToast(error.response?.data?.detail || "Google login failed", "error");
-    } finally {
-      setIsLoadingOAuth(false);
-    }
+    loginMutate({ email: email(), password: password() });
   };
 
   const handleGitHubLogin = async () => {
@@ -46,8 +26,8 @@ function Login() {
 
       const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=user:email`;
       window.location.href = githubAuthUrl;
-    } catch (error) {
-      showToast("Failed to redirect to GitHub", "error");
+    } catch (_error) {
+      toast.error("Failed to redirect to GitHub");
       setIsLoadingOAuth(false);
     }
   };
@@ -68,7 +48,7 @@ function Login() {
         {/* Header */}
         <div className="text-center">
           <div className="flex justify-center mb-4">
-            <FaHeartbeat className="h-12 w-12 text-primary" />
+            <Heart className="h-12 w-12 text-primary" />
           </div>
           <h2 className="text-3xl font-bold text-foreground">Welcome back</h2>
           <p className="mt-2 text-muted-foreground">
@@ -86,8 +66,8 @@ function Login() {
               autoComplete="email"
               required
               placeholder="Email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={email()}
+              onInput={(e) => setEmail(e.currentTarget.value)}
               className="rounded-lg"
             />
             <Input
@@ -97,8 +77,8 @@ function Login() {
               autoComplete="current-password"
               required
               placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={password()}
+              onInput={(e) => setPassword(e.currentTarget.value)}
               className="rounded-lg"
             />
           </div>
@@ -106,9 +86,9 @@ function Login() {
           <Button
             type="submit"
             className="w-full rounded-lg"
-            disabled={isPending || isLoadingOAuth}
+            disabled={isPending() || isLoadingOAuth()}
           >
-            {isPending ? "Signing in..." : "Sign in with email"}
+            {isPending() ? "Signing in..." : "Sign in with email"}
           </Button>
         </form>
 
@@ -126,26 +106,18 @@ function Login() {
 
         {/* OAuth Buttons */}
         <div className="space-y-3">
-          {GOOGLE_CLIENT_ID ? (
-            <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-              <div className="w-full">
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={() => showToast("Google login failed", "error")}
-                  width="100%"
-                />
-              </div>
-            </GoogleOAuthProvider>
-          ) : null}
+          <Show when={GOOGLE_CLIENT_ID}>
+            <div id="google-oauth-container" className="w-full" />
+          </Show>
 
           <Button
             type="button"
             variant="outline"
             className="w-full rounded-lg flex items-center justify-center gap-2"
             onClick={handleGitHubLogin}
-            disabled={isLoadingOAuth || isPending}
+            disabled={isLoadingOAuth() || isPending()}
           >
-            <FaGithub className="h-5 w-5" />
+            <Github className="h-5 w-5" />
             GitHub
           </Button>
         </div>
@@ -154,12 +126,12 @@ function Login() {
         <div className="text-center">
           <p className="text-muted-foreground">
             Don't have an account?{" "}
-            <Link
-              to="/register"
+            <A
+              href="/register"
               className="font-medium text-primary hover:text-primary/80 transition-colors"
             >
               Sign up
-            </Link>
+            </A>
           </p>
         </div>
       </div>

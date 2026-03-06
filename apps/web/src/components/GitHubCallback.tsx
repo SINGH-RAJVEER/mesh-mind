@@ -1,54 +1,55 @@
-import { useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { FaSpinner } from "react-icons/fa";
+import { onMount } from "solid-js";
+import { useNavigate, useSearchParams } from "@solidjs/router";
+import { Loader } from "lucide";
 import axiosInstance from "../api/axiosInstance";
-import { showToast } from "./Toast";
+import { toast } from "./Toast";
 
 function GitHubCallback() {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const code = searchParams.get("code");
-  const error = searchParams.get("error");
+  const [searchParams] = useSearchParams();
+  const code = () => searchParams.code;
+  const error = () => searchParams.error;
 
-  useEffect(() => {
+  onMount(() => {
     const handleCallback = async () => {
-      if (error) {
-        showToast(`GitHub auth error: ${error}`, "error");
+      if (error()) {
+        toast.error(`GitHub auth error: ${error()}`);
         navigate("/login");
         return;
       }
 
-      if (!code) {
-        showToast("No authorization code received", "error");
+      if (!code()) {
+        toast.error("No authorization code received");
         navigate("/login");
         return;
       }
 
       try {
         const response = await axiosInstance.post("/auth/github/callback", {
-          code,
+          code: code(),
         });
 
         localStorage.setItem("authToken", response.data.access_token);
-        showToast(`Welcome, ${response.data.user.username}!`, "success");
+        toast.success(`Welcome, ${response.data.user.username}!`);
         navigate("/dashboard");
-      } catch (err: any) {
-        showToast(
-          error?.response?.data?.detail || "GitHub authentication failed",
-          "error",
-        );
+      } catch (err: unknown) {
+        const errorMessage =
+          err instanceof Error ? err.message : "GitHub authentication failed";
+        toast.error(errorMessage);
         navigate("/login");
       }
     };
 
     handleCallback();
-  }, [code, error, navigate]);
+  });
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="text-center">
-        <FaSpinner className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-        <p className="text-foreground text-lg">Connecting with GitHub...</p>
+        <Loader className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+        <p className="text-foreground font-medium">
+          Completing authentication...
+        </p>
       </div>
     </div>
   );

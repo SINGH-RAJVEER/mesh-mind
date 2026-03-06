@@ -55,4 +55,5 @@ Longer scripts (recommended):
 
 - Don’t use Nu-specific pipelines/filters (`where`, `each`, `select`, etc.) in command suggestions.
 - Don’t assume the terminal understands Bash syntax unless it is executed via `bash -lc`.
-- Don’t run interactive Bash sessions unless explicitly required.
+- Don't run interactive Bash sessions unless explicitly required.
+- **Never use emojis anywhere** in documentation or messages.

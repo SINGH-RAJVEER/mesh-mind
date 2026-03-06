@@ -1,39 +1,35 @@
-import {
-  BrowserRouter as Router,
-  Route,
-  Routes,
-  Navigate,
-} from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Router, Route, Routes, Navigate } from "@solidjs/router";
 import Register from "./components/Register";
 import Login from "./components/Login";
 import GitHubCallback from "./components/GitHubCallback";
 import Dashboard from "./components/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Toast from "./components/Toast";
-
-const queryClient = new QueryClient();
+import { AuthProvider } from "./store/authStore";
+import { ChatProvider } from "./store/chatStore";
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Router>
-        <div className="min-h-screen bg-background">
-          <Routes>
-            <Route path="/register" element={<Register />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/auth/github/callback" element={<GitHubCallback />} />
+    <AuthProvider>
+      <ChatProvider>
+        <Router>
+          <div className="min-h-screen bg-background">
+            <Routes>
+              <Route path="/register" component={Register} />
+              <Route path="/login" component={Login} />
+              <Route path="/auth/github/callback" component={GitHubCallback} />
 
-            <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-            </Route>
+              <Route component={ProtectedRoute}>
+                <Route path="/dashboard" component={Dashboard} />
+              </Route>
 
-            <Route path="/" element={<Navigate to="/login" replace />} />
-          </Routes>
-        </div>
-      </Router>
-      <Toast />
-    </QueryClientProvider>
+              <Route path="/" component={() => <Navigate href="/login" />} />
+            </Routes>
+          </div>
+        </Router>
+        <Toast />
+      </ChatProvider>
+    </AuthProvider>
   );
 }
 

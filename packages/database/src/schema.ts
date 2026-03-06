@@ -5,25 +5,22 @@ import {
   text,
   boolean,
   timestamp,
-  pgEnum,
   index,
   uniqueIndex,
+  integer,
 } from "drizzle-orm/pg-core";
 
-// Enums
-export const providerEnum = pgEnum("provider", ["local", "google", "github"]);
-
-// Users table
+// Users table (compatible with BetterAuth)
 export const users = pgTable(
   "users",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    username: varchar("username", { length: 255 }),
     email: varchar("email", { length: 255 }).notNull().unique(),
-    password: varchar("password", { length: 255 }),
+    emailVerified: boolean("email_verified").notNull().default(false),
+    name: varchar("name", { length: 255 }),
+    image: varchar("image", { length: 500 }),
+    username: varchar("username", { length: 255 }),
     profilePicture: varchar("profile_picture", { length: 500 }),
-    provider: providerEnum("provider").notNull().default("local"),
-    providerId: varchar("provider_id", { length: 255 }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -34,10 +31,76 @@ export const users = pgTable(
   (table) => ({
     emailIdx: uniqueIndex("users_email_idx").on(table.email),
     usernameIdx: index("users_username_idx").on(table.username),
-    providerIdx: index("users_provider_idx").on(
-      table.provider,
-      table.providerId,
-    ),
+  }),
+);
+
+// Accounts table (for OAuth providers - required by BetterAuth)
+export const accounts = pgTable(
+  "accounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    accountId: varchar("account_id", { length: 255 }).notNull(),
+    provider: varchar("provider", { length: 255 }).notNull(),
+    providerAccountId: varchar("provider_account_id", { length: 255 }).notNull(),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    expiresAt: integer("expires_at"),
+    idToken: text("id_token"),
+    tokenType: varchar("token_type", { length: 255 }),
+    scope: text("scope"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("accounts_user_id_idx").on(table.userId),
+    providerIdx: index("accounts_provider_idx").on(table.provider),
+  }),
+);
+
+// Sessions table (required by BetterAuth)
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    token: varchar("token", { length: 255 }).notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("sessions_user_id_idx").on(table.userId),
+    tokenIdx: uniqueIndex("sessions_token_idx").on(table.token),
+  }),
+);
+
+// Verification table (for email verification - required by BetterAuth)
+export const verification = pgTable(
+  "verification",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    identifier: varchar("identifier", { length: 255 }).notNull(),
+    value: varchar("value", { length: 255 }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    identifierIdx: index("verification_identifier_idx").on(table.identifier),
   }),
 );
 
@@ -94,6 +157,15 @@ export const messages = pgTable(
 // TypeScript types
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+
+export type Account = typeof accounts.$inferSelect;
+export type NewAccount = typeof accounts.$inferInsert;
+
+export type Session = typeof sessions.$inferSelect;
+export type NewSession = typeof sessions.$inferInsert;
+
+export type Verification = typeof verification.$inferSelect;
+export type NewVerification = typeof verification.$inferInsert;
 
 export type Conversation = typeof conversations.$inferSelect;
 export type NewConversation = typeof conversations.$inferInsert;

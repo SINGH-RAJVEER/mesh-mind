@@ -24,7 +24,6 @@ This project follows a clean monorepo architecture with:
 ### Backend
 
 - Express.js with TypeScript
-- MongoDB with Mongoose
 - PostgreSQL with pgvector for embeddings
 - JWT Authentication
 - LiteLLM SDK for LLM inference with streaming support

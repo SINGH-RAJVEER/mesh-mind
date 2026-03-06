@@ -12,17 +12,17 @@ MindScribe now supports multiple authentication methods:
 
 ### Email & Password Authentication
 
-- ✅ Password strength validation (8+ chars, uppercase, lowercase, numbers)
-- ✅ Secure bcrypt hashing
-- ✅ Unique username and email validation
-- ✅ Clear error messages
+- Password strength validation (8+ chars, uppercase, lowercase, numbers)
+- Secure bcrypt hashing
+- Unique username and email validation
+- Clear error messages
 
 ### OAuth Integration
 
-- ✅ Automatic account creation on first login
-- ✅ Email-based account linking
-- ✅ Profile picture support
-- ✅ Social login UI with branded buttons
+- Automatic account creation on first login
+- Email-based account linking
+- Profile picture support
+- Social login UI with branded buttons
 
 ## User Account Structure
 

@@ -1,6 +1,5 @@
-import express, { type Router } from "express";
-import type { Response } from "express";
-import { getCurrentUser, type AuthRequest } from "./auth";
+import { Hono, type Context } from "hono";
+import { getCurrentUser } from "../middleware/auth";
 import { CRISIS_WORDS, DETECT_MOOD } from "@mindscribe/types";
 import { getSystemPrompt } from "../systemPrompt";
 import { db, conversations, messages } from "@mindscribe/database";
@@ -8,7 +7,7 @@ import { eq, and, desc } from "drizzle-orm";
 import litellmManager from "../utils/litellmManager";
 import embeddingsService from "../services/embeddingsService";
 
-const router: Router = express.Router();
+const chatbotRouter = new Hono();
 
 /**
  * Get conversation history for context using vector embeddings
@@ -110,22 +109,22 @@ const storeChat = async (
 };
 
 // POST /chat - Stream response using Server-Sent Events (SSE)
-router.post(
-  "/",
-  getCurrentUser,
-  async (req: AuthRequest, res: Response): Promise<void> => {
-    const { user } = req;
+chatbotRouter.post("/", getCurrentUser, async (c: Context) => {
+  try {
+    const user = c.get("user") as { id: string };
     if (!user) {
-      res.status(401).json({ detail: "Unauthorized" });
-      return;
+      return c.json({ detail: "Unauthorized" }, 401);
     }
 
-    let { user_message, conversation_id } = req.body;
+    const body = (await c.req.json()) as {
+      user_message?: string;
+      conversation_id?: string;
+    };
+    let { user_message, conversation_id } = body;
 
     // Validate input
     if (!user_message || typeof user_message !== "string") {
-      res.status(400).json({ detail: "user_message is required" });
-      return;
+      return c.json({ detail: "user_message is required" }, 400);
     }
 
     const isCrisis = CRISIS_WORDS.some((word) =>
@@ -140,25 +139,26 @@ router.post(
       }
 
       // Set SSE headers
-      res.setHeader("Content-Type", "text/event-stream");
-      res.setHeader("Cache-Control", "no-cache");
-      res.setHeader("Connection", "keep-alive");
-      res.setHeader("Access-Control-Allow-Origin", "*");
-
-      // Send conversation ID and mood first
-      res.write(
-        `data: ${JSON.stringify({ type: "metadata", conversation_id, mood })}\n\n`,
-      );
-
       let fullResponse = "";
 
       if (isCrisis) {
         const crisisMessage =
           "Please seek professional help. You're not alone ❤️.";
-        res.write(
-          `data: ${JSON.stringify({ type: "text", content: crisisMessage })}\n\n`,
-        );
         fullResponse = crisisMessage;
+
+        // Return SSE response
+        return c.text(
+          `data: ${JSON.stringify({ type: "metadata", conversation_id, mood })}\n\n` +
+            `data: ${JSON.stringify({ type: "text", content: crisisMessage })}\n\n` +
+            `data: ${JSON.stringify({ type: "done" })}\n\n`,
+          200,
+          {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+          },
+        );
       } else {
         try {
           // Get conversation history for context using vector search
@@ -171,155 +171,153 @@ router.post(
             conversationHistory,
           );
 
+          // Build SSE response
+          let sseResponse = `data: ${JSON.stringify({ type: "metadata", conversation_id, mood })}\n\n`;
+
           // Stream the response
           for await (const chunk of litellmManager.streamChatResponse(
             user_message,
             systemPrompt,
           )) {
             fullResponse += chunk;
-            res.write(
-              `data: ${JSON.stringify({ type: "text", content: chunk })}\n\n`,
-            );
+            sseResponse += `data: ${JSON.stringify({ type: "text", content: chunk })}\n\n`;
           }
+
+          sseResponse += `data: ${JSON.stringify({ type: "done" })}\n\n`;
+
+          // Store chat asynchronously after response is sent
+          storeChat(
+            user.id,
+            conversation_id,
+            user_message,
+            fullResponse,
+            mood,
+            isCrisis,
+          ).catch((err) => {
+            console.error("Failed to store chat:", err);
+          });
+
+          return c.text(sseResponse, 200, {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+          });
         } catch (err: unknown) {
           const error = err as { message?: string };
           const errorMsg =
             error.message || "An error occurred during inference";
-          res.write(
+
+          return c.text(
             `data: ${JSON.stringify({ type: "error", content: errorMsg })}\n\n`,
+            500,
+            {
+              "Content-Type": "text/event-stream",
+              "Cache-Control": "no-cache",
+              Connection: "keep-alive",
+            },
           );
-          res.end();
-          return;
         }
       }
-
-      // Send completion signal
-      res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
-      res.end();
-
-      // Store chat asynchronously after response is sent
-      await storeChat(
-        user.id,
-        conversation_id,
-        user_message,
-        fullResponse,
-        mood,
-        isCrisis,
-      );
     } catch (err: unknown) {
       const error = err as { message?: string };
       const errorMsg = error.message || "An error occurred";
       console.error("Chat error:", errorMsg);
 
-      if (!res.headersSent) {
-        res.status(500).json({ detail: errorMsg });
-      } else {
-        res.write(
-          `data: ${JSON.stringify({ type: "error", content: errorMsg })}\n\n`,
-        );
-        res.end();
-      }
+      return c.json({ detail: errorMsg }, 500);
     }
-  },
-);
+  } catch (err: unknown) {
+    const error = err as { message?: string };
+    return c.json({ detail: error.message || "An error occurred" }, 500);
+  }
+});
 
 // GET /chat/history
-router.get(
-  "/history",
-  getCurrentUser,
-  async (req: AuthRequest, res: Response): Promise<Response> => {
-    const { user } = req;
-    if (!user) return res.status(401).json({ detail: "Unauthorized" });
+chatbotRouter.get("/history", getCurrentUser, async (c: Context) => {
+  try {
+    const user = c.get("user") as { id: string };
+    if (!user) return c.json({ detail: "Unauthorized" }, 401);
 
-    const limit = parseInt(req.query.limit as string) || 10;
-    try {
-      const messageHistory = await db
-        .select()
-        .from(messages)
-        .where(eq(messages.userId, user.id))
-        .orderBy(desc(messages.timestamp))
-        .limit(limit);
+    const limit = parseInt(c.req.query("limit") || "10", 10);
 
-      // Group messages by conversation_id
-      const conversationsMap: Record<
-        string,
-        { id: string; messages: unknown[]; timestamp: Date }
-      > = {};
+    const messageHistory = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.userId, user.id))
+      .orderBy(desc(messages.timestamp))
+      .limit(limit);
 
-      messageHistory.forEach((row) => {
-        if (!conversationsMap[row.conversationId]) {
-          conversationsMap[row.conversationId] = {
-            id: row.conversationId,
-            messages: [],
-            timestamp: row.timestamp,
-          };
-        }
-        conversationsMap[row.conversationId].messages.push({
-          id: row.id,
-          user_message: row.userMessage,
-          bot_response: row.botResponse,
-          mood: row.mood,
-          is_crisis: row.isCrisis,
+    // Group messages by conversation_id
+    const conversationsMap: Record<
+      string,
+      { id: string; messages: unknown[]; timestamp: Date }
+    > = {};
+
+    messageHistory.forEach((row) => {
+      if (!conversationsMap[row.conversationId]) {
+        conversationsMap[row.conversationId] = {
+          id: row.conversationId,
+          messages: [],
           timestamp: row.timestamp,
-        });
+        };
+      }
+      conversationsMap[row.conversationId].messages.push({
+        id: row.id,
+        user_message: row.userMessage,
+        bot_response: row.botResponse,
+        mood: row.mood,
+        is_crisis: row.isCrisis,
+        timestamp: row.timestamp,
       });
+    });
 
-      return res.json({ history: Object.values(conversationsMap) });
-    } catch (err: unknown) {
-      const error = err as { message?: string };
-      return res
-        .status(500)
-        .json({ detail: error.message || "An error occurred" });
-    }
-  },
-);
+    return c.json({ history: Object.values(conversationsMap) });
+  } catch (err: unknown) {
+    const error = err as { message?: string };
+    return c.json({ detail: error.message || "An error occurred" }, 500);
+  }
+});
 
 // DELETE /chat/:conversationId
-router.delete(
-  "/:conversationId",
-  getCurrentUser,
-  async (req: AuthRequest, res: Response): Promise<Response> => {
-    const { user } = req;
-    if (!user) return res.status(401).json({ detail: "Unauthorized" });
+chatbotRouter.delete("/:conversationId", getCurrentUser, async (c: Context) => {
+  try {
+    const user = c.get("user") as { id: string };
+    if (!user) return c.json({ detail: "Unauthorized" }, 401);
 
-    const { conversationId } = req.params;
+    const { conversationId } = c.req.param();
 
-    try {
-      // Delete embeddings first
-      await embeddingsService
-        .deleteConversationEmbeddings(conversationId)
-        .catch((err) => {
-          console.warn("Failed to delete embeddings:", err);
-        });
+    // Delete embeddings first
+    await embeddingsService
+      .deleteConversationEmbeddings(conversationId)
+      .catch((err) => {
+        console.warn("Failed to delete embeddings:", err);
+      });
 
-      // Delete all messages associated with the conversation
-      await db
-        .delete(messages)
-        .where(
-          and(
-            eq(messages.userId, user.id),
-            eq(messages.conversationId, conversationId),
-          ),
-        );
+    // Delete all messages associated with the conversation
+    await db
+      .delete(messages)
+      .where(
+        and(
+          eq(messages.userId, user.id),
+          eq(messages.conversationId, conversationId),
+        ),
+      );
 
-      // Delete the conversation itself
-      await db
-        .delete(conversations)
-        .where(
-          and(
-            eq(conversations.id, conversationId),
-            eq(conversations.userId, user.id),
-          ),
-        );
+    // Delete the conversation itself
+    await db
+      .delete(conversations)
+      .where(
+        and(
+          eq(conversations.id, conversationId),
+          eq(conversations.userId, user.id),
+        ),
+      );
 
-      return res.json({ message: "Conversation deleted successfully" });
-    } catch (err: unknown) {
-      const error = err as { message?: string };
-      return res
-        .status(500)
-        .json({ detail: error.message || "An error occurred" });
-    }
-  },
-);
+    return c.json({ message: "Conversation deleted successfully" });
+  } catch (err: unknown) {
+    const error = err as { message?: string };
+    return c.json({ detail: error.message || "An error occurred" }, 500);
+  }
+});
 
-export { router as chatbotRouter };
+export { chatbotRouter };

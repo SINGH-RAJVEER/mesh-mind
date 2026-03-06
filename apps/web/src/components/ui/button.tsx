@@ -1,5 +1,5 @@
-import { JSX, mergeProps, splitProps } from "solid-js";
 import { cn } from "./utils";
+import { type JSX, splitProps } from "solid-js";
 
 export type ButtonVariant =
   | "default"
@@ -13,7 +13,6 @@ export type ButtonSize = "default" | "sm" | "lg" | "icon";
 export interface ButtonProps extends JSX.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
-  class?: string;
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
@@ -35,19 +34,21 @@ const sizeStyles: Record<ButtonSize, string> = {
   icon: "h-9 w-9",
 };
 
-export const Button = (props: ButtonProps) => {
-  const [, rest] = splitProps(props, ["variant", "size", "class"]);
-  const variant = () => props.variant || "default";
-  const size = () => props.size || "default";
+export const Button = (
+  props: ButtonProps & { variant?: ButtonVariant; size?: ButtonSize },
+) => {
+  const [split, rest] = splitProps(props, ["className", "variant", "size"]);
 
-  const merged = mergeProps(rest, {
-    class: cn(
-      "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
-      variantStyles[variant()],
-      sizeStyles[size()],
-      props.class,
-    ),
-  });
-
-  return <button {...merged} />;
+  return (
+    <button
+      className={cn(
+        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+        variantStyles[split.variant ?? "default"],
+        sizeStyles[split.size ?? "default"],
+        split.className,
+      )}
+      {...rest}
+    />
+  );
 };
+Button.displayName = "Button";

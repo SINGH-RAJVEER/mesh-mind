@@ -1,25 +1,35 @@
-import { useMutation } from "@tanstack/react-query";
+import { createSignal } from "solid-js";
+import { useNavigate } from "@solidjs/router";
 import { loginUser } from "../api/authApi";
-import { useNavigate } from "react-router-dom";
-import { showToast } from "../components/Toast";
-import useAuthStore from "../store/authStore";
+import { useAuthStore } from "../store/authStore";
+import { toast } from "../components/Toast";
 
 export const useLogin = () => {
   const navigate = useNavigate();
-  const setUser = useAuthStore((state) => state.setUser);
+  const { updateAuth } = useAuthStore();
+  const [isPending, setIsPending] = createSignal(false);
+  const [error, setError] = createSignal<string | null>(null);
 
-  return useMutation({
-    mutationFn: loginUser,
-    onSuccess: (data) => {
+  const mutate = async (credentials: { email: string; password: string }) => {
+    setIsPending(true);
+    setError(null);
+
+    try {
+      const data = await loginUser(credentials);
       const { user, access_token } = data;
 
-      setUser(user, access_token);
+      updateAuth(user, access_token);
 
-      showToast(data.message || "Login successful!", "success");
+      toast.success(data.message || "Login successful!");
       navigate("/dashboard");
-    },
-    onError: (err) => {
-      showToast(err.message || "Login failed!", "error");
-    },
-  });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Login failed!";
+      setError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  return { mutate, isPending, error };
 };

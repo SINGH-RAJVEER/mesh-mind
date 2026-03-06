@@ -1,13 +1,17 @@
 import { defineConfig } from "vite";
-import solid from "@solidjs/vite";
-import { fileURLToPath, URL } from "url";
+import { solidPlugin } from "vite-plugin-solid";
+import { fileURLToPath, URL } from "node:url";
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [solid()],
+  plugins: [solidPlugin()],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      target: "esnext",
     },
   },
 });

@@ -1,10 +1,23 @@
-import { Navigate, Outlet } from "react-router-dom"
-import useAuthStore from "../store/authStore"
+import { createSignal, Show, onMount } from "solid-js";
+import { Navigate, Outlet } from "@solidjs/router";
+import { useAuthStore } from "../store/authStore";
 
 const ProtectedRoute = () => {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const { isAuthenticated } = useAuthStore();
+  const [mounted, setMounted] = createSignal(false);
 
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />
-}
+  onMount(() => {
+    setMounted(true);
+  });
 
-export default ProtectedRoute
+  return (
+    <Show
+      when={mounted() && isAuthenticated()}
+      fallback={<Navigate href="/login" />}
+    >
+      <Outlet />
+    </Show>
+  );
+};
+
+export default ProtectedRoute;

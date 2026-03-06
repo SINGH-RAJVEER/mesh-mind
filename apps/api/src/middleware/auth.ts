@@ -1,31 +1,26 @@
-import type { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import { SECRET_KEY } from "../config";
+import type { Context } from "hono";
+import auth from "../auth";
 
-export interface AuthRequest extends Request {
-  user?: {
-    user_id: string;
-  };
+export interface AuthContext extends Context {
+  set(key: string, value: unknown): void;
+  get(key: string): unknown;
 }
 
-export const authenticateToken = (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction,
-): void => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(" ")[1];
-
-  if (!token) {
-    res.status(401).json({ error: "Access token required" });
-    return;
-  }
-
+export const getCurrentUser = async (
+  c: AuthContext,
+  next: () => Promise<void>,
+) => {
   try {
-    const decoded = jwt.verify(token, SECRET_KEY) as { user_id: string };
-    req.user = { user_id: decoded.user_id };
-    next();
-  } catch (error) {
-    res.status(403).json({ error: "Invalid or expired token" });
+    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+
+    if (!session) {
+      return c.json({ detail: "Unauthorized" }, 401);
+    }
+
+    c.set("user", { id: session.user.id });
+    c.set("session", session);
+    await next();
+  } catch (_err) {
+    return c.json({ detail: "Invalid or expired session" }, 401);
   }
 };

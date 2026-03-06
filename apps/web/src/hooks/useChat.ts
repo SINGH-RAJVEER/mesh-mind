@@ -1,22 +1,22 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createSignal, createResource } from "solid-js";
 import {
   fetchChatHistory,
   sendMessageStream,
   deleteChat,
 } from "../api/chatApi";
-import useChatStore from "../store/chatStore";
+import { useChatStore } from "../store/chatStore";
+import { toast } from "../components/Toast";
 
 export const useFetchChatHistory = () => {
-  const setChatHistory = useChatStore((state) => state.setChatHistory);
+  const { setChatHistory } = useChatStore();
 
-  return useQuery({
-    queryKey: ["chatHistory"],
-    queryFn: async () => {
-      const data = await fetchChatHistory();
-      setChatHistory(data);
-      return data;
-    },
+  const [data, { refetch, mutate }] = createResource(async () => {
+    const data = await fetchChatHistory();
+    setChatHistory(data);
+    return data;
   });
+
+  return { data, refetch, mutate };
 };
 
 /**
@@ -24,104 +24,110 @@ export const useFetchChatHistory = () => {
  * Streams text chunks as they arrive from the LLM
  */
 export const useSendMessageStream = () => {
-  const queryClient = useQueryClient();
-  const setLoading = useChatStore((state) => state.setLoading);
-  const updateConversation = useChatStore((state) => state.updateConversation);
-  const selectedConversation = useChatStore(
-    (state) => state.selectedConversation,
-  );
-  const setSelectedConversation = useChatStore(
-    (state) => state.setSelectedConversation,
-  );
+  const { setLoading, updateConversation, selectedConversation, setSelectedConversation } =
+    useChatStore();
+  
+  const [isPending, setIsPending] = createSignal(false);
+  const [error, setError] = createSignal<string | null>(null);
 
-  return useMutation({
-    mutationFn: async ({
-      message,
-      conversationId,
-      onChunk,
-    }: {
-      message: string;
-      conversationId?: string;
-      onChunk: (chunk: string) => void;
-    }) => {
-      setLoading(true);
-      let fullResponse = "";
-      let finalConversationId = conversationId;
+  const mutate = async ({
+    message,
+    conversationId,
+    onChunk,
+  }: {
+    message: string;
+    conversationId?: string;
+    onChunk: (chunk: string) => void;
+  }) => {
+    setIsPending(true);
+    setError(null);
+    setLoading(true);
+    let fullResponse = "";
+    let finalConversationId = conversationId;
 
-      try {
-        for await (const event of sendMessageStream({
-          message,
-          conversationId,
-        })) {
-          if (event.type === "text") {
-            fullResponse += event.content;
-            onChunk(event.content);
-          } else if (event.type === "metadata") {
-            finalConversationId = event.conversation_id;
-          } else if (event.type === "error") {
-            throw new Error(event.content);
-          }
+    try {
+      for await (const event of sendMessageStream({
+        message,
+        conversationId,
+      })) {
+        if (event.type === "text") {
+          fullResponse += event.content;
+          onChunk(event.content);
+        } else if (event.type === "metadata") {
+          finalConversationId = event.conversation_id;
+        } else if (event.type === "error") {
+          throw new Error(event.content);
         }
-        return {
-          response: fullResponse,
-          conversation_id: finalConversationId,
-        };
-      } catch (error) {
-        setLoading(false);
-        throw error;
       }
-    },
-    onSuccess: (response) => {
+
       setLoading(false);
 
+      const selected = selectedConversation();
       const userMessage = {
         id: Date.now(),
-        user_message: "",
+        user_message: message,
         type: "user",
       };
       const botMessage = {
         id: Date.now() + 1,
-        bot_response: response.response,
+        bot_response: fullResponse,
         type: "ai",
       };
 
-      if (!selectedConversation) {
+      if (!selected) {
         const newConversation = {
-          id: response.conversation_id,
+          id: finalConversationId,
           messages: [userMessage, botMessage],
         };
         setSelectedConversation(newConversation);
       } else {
-        updateConversation(selectedConversation.id, (conversation) => ({
+        updateConversation(selected.id, (conversation) => ({
           ...conversation,
           messages: [...conversation.messages, userMessage, botMessage],
         }));
       }
 
-      queryClient.invalidateQueries({ queryKey: ["chatHistory"] });
-    },
-    onError: (error) => {
-      console.error("Error sending message:", error);
+      return {
+        response: fullResponse,
+        conversation_id: finalConversationId,
+      };
+    } catch (err: unknown) {
       setLoading(false);
-    },
-  });
+      const errorMsg =
+        err instanceof Error ? err.message : "Failed to send message";
+      setError(errorMsg);
+      toast.error(errorMsg);
+      throw err;
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  return { mutate, isPending, error };
 };
 
 export const useDeleteChat = () => {
-  const queryClient = useQueryClient();
-  const deleteConversation = useChatStore((state) => state.deleteConversation);
+  const { deleteConversation } = useChatStore();
+  const [isPending, setIsPending] = createSignal(false);
+  const [error, setError] = createSignal<string | null>(null);
 
-  return useMutation({
-    mutationFn: async (conversationId: string) => {
-      const response = await deleteChat(conversationId);
-      return response;
-    },
-    onSuccess: (_, conversationId) => {
+  const mutate = async (conversationId: string) => {
+    setIsPending(true);
+    setError(null);
+
+    try {
+      await deleteChat(conversationId);
       deleteConversation(conversationId);
-      queryClient.invalidateQueries({ queryKey: ["chatHistory"] });
-    },
-    onError: (error) => {
-      console.error("Error deleting chat:", error);
-    },
-  });
+      toast.success("Chat deleted successfully");
+    } catch (err: unknown) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Failed to delete chat";
+      setError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  return { mutate, isPending, error };
 };

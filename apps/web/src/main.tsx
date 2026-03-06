@@ -4,10 +4,10 @@ import App from "./App";
 
 const root = document.getElementById("root");
 
-if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
+if (!root) {
   throw new Error(
-    "Root element not found. Did you forget to add it to your index.html? Or if using the Vue template, did you overwrite the project root in vite.config.ts?",
+    "Root element not found. Did you forget to add it to your index.html?",
   );
 }
 
-render(() => <App />, root!);
+render(() => <App />, root);

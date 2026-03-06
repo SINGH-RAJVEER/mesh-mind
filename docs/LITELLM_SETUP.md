@@ -6,10 +6,10 @@ This guide explains how to set up and configure the Mind Scribe application with
 
 Mind Scribe now uses **LiteLLM SDK** for LLM inference instead of direct Ollama integration. This provides:
 
-- ✅ **Flexible Provider Support** - Works with OpenAI, Anthropic, Ollama, local endpoints, and more
-- ✅ **Response Streaming** - Real-time text streaming via Server-Sent Events (SSE)
-- ✅ **Better Performance** - Optimized inference with configurable models
-- ✅ **Provider Agnostic** - Easy to switch between different LLM providers
+- **Flexible Provider Support** - Works with OpenAI, Anthropic, Ollama, local endpoints, and more
+- **Response Streaming** - Real-time text streaming via Server-Sent Events (SSE)
+- **Better Performance** - Optimized inference with configurable models
+- **Provider Agnostic** - Easy to switch between different LLM providers
 
 ## Architecture
 

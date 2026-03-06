@@ -1,26 +1,33 @@
-import { useNavigate } from "react-router-dom";
-
-import { useMutation } from "@tanstack/react-query";
-import useAuthStore from "../store/authStore";
-import { showToast } from "../components/Toast";
+import { createSignal } from "solid-js";
+import { useNavigate } from "@solidjs/router";
+import { useAuthStore } from "../store/authStore";
+import { toast } from "../components/Toast";
 
 export const useLogout = () => {
   const { logout } = useAuthStore();
-
   const navigate = useNavigate();
+  const [isPending, setIsPending] = createSignal(false);
+  const [error, setError] = createSignal<string | null>(null);
 
-  return useMutation({
-    mutationFn: () => logout(),
-    onSuccess: () => {
+  const mutate = async () => {
+    setIsPending(true);
+    setError(null);
+
+    try {
       logout();
-      showToast("Logout Successfully", "success");
+      toast.success("Logout Successful");
       navigate("/login");
-    },
-    onError: (error) => {
-      console.log(error);
-      const errorMessage =
-        error?.response?.data?.detail || "Logout failed. Please try again.";
-      showToast(errorMessage, "error");
-    },
-  });
+    } catch (err: unknown) {
+      const errorMsg =
+        err instanceof Error
+          ? err.message
+          : "Logout failed. Please try again.";
+      setError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  return { mutate, isPending, error };
 };

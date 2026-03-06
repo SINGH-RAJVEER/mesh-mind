@@ -1,15 +1,14 @@
-import { JSX, mergeProps, splitProps } from "solid-js";
+import { type JSX, splitProps } from "solid-js";
 import { cn } from "./utils";
 
-export interface SkeletonProps extends JSX.HTMLAttributes<HTMLDivElement> {
-  class?: string;
-}
+export interface SkeletonProps extends JSX.HTMLAttributes<HTMLDivElement> {}
 
 export const Skeleton = (props: SkeletonProps) => {
-  const [, rest] = splitProps(props, ["class"]);
-  const merged = mergeProps(rest, {
-    class: cn("animate-pulse rounded-md bg-primary/10", props.class),
-  });
-
-  return <div {...merged} />;
+  const [split, rest] = splitProps(props, ["class"]);
+  return (
+    <div
+      className={cn("animate-pulse rounded-md bg-primary/10", split.class)}
+      {...rest}
+    />
+  );
 };

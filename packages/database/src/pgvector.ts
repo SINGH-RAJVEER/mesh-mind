@@ -1,34 +1,22 @@
-import { Pool, type PoolClient } from "pg";
+import postgres, { type Sql } from "postgres";
 
 class PgVectorConnection {
   private static instance: PgVectorConnection;
-  private pool: Pool;
+  private sql: Sql;
   private isConnected: boolean = false;
 
   private constructor() {
-    const config = {
+    this.sql = postgres({
       host: process.env.POSTGRES_HOST || "localhost",
       port: parseInt(process.env.POSTGRES_PORT || "5432"),
       database: process.env.POSTGRES_DB || "mindscribe_vectors",
       user: process.env.POSTGRES_USER || "postgres",
       password: process.env.POSTGRES_PASSWORD,
-      max: 20, // Maximum number of clients in the pool
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
-    };
-
-    this.pool = new Pool(config);
-
-    this.pool.on("error", (err: Error) => {
-      console.error("Unexpected error on idle PostgreSQL client:", err);
+      max: 20, // Maximum number of connections
     });
 
-    this.pool.on("connect", () => {
-      if (!this.isConnected) {
-        console.log("Connected to PostgreSQL with pgvector");
-        this.isConnected = true;
-      }
-    });
+    this.isConnected = true;
+    console.log("Connected to PostgreSQL with pgvector");
   }
 
   public static getInstance(): PgVectorConnection {
@@ -38,17 +26,13 @@ class PgVectorConnection {
     return PgVectorConnection.instance;
   }
 
-  public getPool(): Pool {
-    return this.pool;
-  }
-
-  public async getClient(): Promise<PoolClient> {
-    return await this.pool.connect();
+  public getSql(): Sql {
+    return this.sql;
   }
 
   public async query(text: string, params?: unknown[]): Promise<unknown> {
     try {
-      const result = await this.pool.query(text, params);
+      const result = await this.sql.unsafe(text, (params || []) as any);
       return result;
     } catch (err) {
       console.error("Database query error:", err);
@@ -57,15 +41,15 @@ class PgVectorConnection {
   }
 
   public async close(): Promise<void> {
-    await this.pool.end();
+    await this.sql.end();
     this.isConnected = false;
-    console.log("PostgreSQL connection pool closed");
+    console.log("PostgreSQL connection closed");
   }
 
   public async healthCheck(): Promise<boolean> {
     try {
-      const result = await this.pool.query("SELECT 1");
-      return result.rows.length > 0;
+      await this.sql`SELECT 1`;
+      return true;
     } catch (err) {
       console.error("PostgreSQL health check failed:", err);
       return false;
