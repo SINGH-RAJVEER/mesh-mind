@@ -1,0 +1,38 @@
+FROM oven/bun:1.3.9 AS builder
+
+WORKDIR /app
+
+COPY package.json bun.lock turbo.json biome.json ./
+COPY apps/api/package.json ./apps/api/package.json
+COPY apps/web/package.json ./apps/web/package.json
+COPY packages/database/package.json ./packages/database/package.json
+COPY packages/types/package.json ./packages/types/package.json
+
+RUN bun install --frozen-lockfile
+
+COPY apps ./apps
+COPY packages ./packages
+
+RUN cd /app/packages/types && bun run build \
+  && cd /app/packages/database && bun run build \
+  && cd /app/apps/api && bun run build
+
+FROM oven/bun:1.3.9
+
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=8000
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/packages/database/package.json ./packages/database/package.json
+COPY --from=builder /app/packages/database/dist ./packages/database/dist
+COPY --from=builder /app/packages/types/package.json ./packages/types/package.json
+COPY --from=builder /app/packages/types/dist ./packages/types/dist
+
+USER bun
+
+EXPOSE 8000
+
+CMD ["bun", "apps/api/dist/main.js"]

@@ -1,499 +1,180 @@
 # Docker Setup Guide
 
-This guide covers the Docker configuration for the MindScribe application, including Docker Compose orchestration, multi-stage builds, and production-ready configurations.
+This repository now has separate Docker workflows for development and production.
 
-## Project Structure
+- Development uses Bun and Vite dev servers with bind mounts for fast local iteration.
+- Production uses compiled assets, a production API image, and Nginx as the public web entrypoint.
 
-```
-docker/
-├── Dockerfile.api          # Backend API service build
-├── Dockerfile.web          # Frontend web service build
-├── nginx.conf             # Nginx configuration for web server
-└── .env.example           # Environment variables template
+## Services
 
-apps/
-├── api/
-│   └── .dockerignore      # Excludes unnecessary files from API image
-└── web/
-    └── .dockerignore      # Excludes unnecessary files from web image
+- `postgres`: PostgreSQL 16 with `pgvector`
+- `api`: Bun dev server for `apps/api`
+- `web`: Vite dev server for `apps/web`
 
-packages/
-├── database/
-│   └── .dockerignore      # Excludes unnecessary files from database package
-└── types/
-    └── .dockerignore      # Excludes unnecessary files from types package
+## Development
 
-docker-compose.yml          # Orchestrates all services
-```
+The development workflow lives in [docker/dev/docker-compose.dev.yml](../docker/dev/docker-compose.dev.yml).
 
-## Quick Start
+### Development quick start
 
-### 1. Setup Environment
+1. Create a root `.env` file with the environment variables required by the API and OAuth providers.
+2. Start the stack:
 
 ```bash
-# Copy the example environment file and configure it
-cp docker/.env.example .env
-
-# Edit .env with your actual values
-nano .env
+docker compose -f docker/dev/docker-compose.dev.yml up --build
 ```
 
-Required environment variables:
+1. Open the app:
 
-- `MONGO_INITDB_ROOT_USERNAME` - MongoDB root user
-- `MONGO_INITDB_ROOT_PASSWORD` - MongoDB root password
-- `SECRET_KEY` - JWT secret for API
-- `GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET` - Google OAuth credentials
-- `GITHUB_CLIENT_ID` & `GITHUB_CLIENT_SECRET` - GitHub OAuth credentials
-- `VITE_GOOGLE_CLIENT_ID` & `VITE_GITHUB_CLIENT_ID` - Frontend OAuth IDs
+- Frontend: <http://localhost:3000>
+- API: <http://localhost:8000>
+- PostgreSQL: localhost:5432
 
-### 2. Start Services
+Stop the stack:
 
 ```bash
-# Build and start all services in background
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# View specific service logs
-docker-compose logs -f api
-docker-compose logs -f web
-docker-compose logs -f mongo
+docker compose -f docker/dev/docker-compose.dev.yml down
 ```
 
-### 3. Access Services
-
-- **Frontend**: http://localhost:3000
-- **API**: http://localhost:8000
-- **MongoDB**: mongodb://localhost:27017 (with credentials from .env)
-
-### 4. Stop Services
+Remove containers and volumes:
 
 ```bash
-# Stop all services
-docker-compose down
-
-# Stop and remove volumes (caution: deletes data)
-docker-compose down -v
+docker compose -f docker/dev/docker-compose.dev.yml down -v
 ```
 
-## Service Architecture
+## Why this setup is suitable for development
 
-### MongoDB Service
+### API container
 
-- **Image**: mongo:7.0 (official MongoDB)
-- **Port**: 27017
-- **Volumes**:
-  - `mongo_data` - Data persistence
-  - `mongo_config` - Configuration persistence
-- **Health Check**: MongoDB ping command
-- **Init**: Creates root user with credentials from .env
+- uses the Bun base image directly
+- runs `bun run dev`
+- mounts the repository at `/app`
+- stores `/app/node_modules` in a Docker volume
 
-### API Service
+### Web container
 
-- **Build**: Multi-stage Dockerfile
-- **Base Image**: oven/bun:1.3.9 (builder) → node:22-alpine (production)
-- **Port**: 8000
-- **Dependencies**: MongoDB
-- **Health Check**: HTTP GET /health endpoint
-- **Non-root User**: nodejs (uid: 1001)
-- **Features**:
-  - TypeScript compilation
-  - Production-only dependencies
-  - Dumb-init process manager
-  - Volume mounting for hot reload in dev
+- uses the Bun base image directly
+- runs `bun run dev --host 0.0.0.0 --port 3000`
+- exposes the Vite dev server on port `3000`
+- enables polling-based file watching for containerized development
 
-### Web Service
+### Shared behavior
 
-- **Build**: Multi-stage Dockerfile
-- **Base Image**: oven/bun:1.3.9 (builder) → nginx:alpine (production)
-- **Port**: 3000
-- **Dependencies**: API service
-- **Health Check**: HTTP GET / endpoint
-- **Non-root User**: nginx-user (uid: 1001)
-- **Features**:
-  - Vite production build
-  - Nginx reverse proxy
-  - Gzip compression enabled
-  - Cache busting for HTML
-  - API proxying to `/api/` path
+- host code changes are reflected immediately through bind mounts
+- Bun's install cache is stored in a Docker volume for faster rebuilds
+- PostgreSQL data is stored in a named volume and survives restarts
 
-## Docker Networking
+## Common commands
 
-All services connect via `mindscribe-network` (bridge network):
-
-- Services communicate by container name (e.g., `mongo`, `api`)
-- Isolated from host unless ports are exposed
-- Easy service discovery
-
-## Environment Configuration
-
-### Development (.env.local)
+Start in the background:
 
 ```bash
-NODE_ENV=development
-VITE_API_URL=http://localhost:8000
-MONGODB_URI=mongodb://mindscribe:password@mongo:27017/mindscribe
+docker compose -f docker/dev/docker-compose.dev.yml up --build -d
 ```
 
-### Production (.env)
+Show all logs:
 
 ```bash
-NODE_ENV=production
-VITE_API_URL=https://your-domain.com
-MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/mindscribe
+docker compose -f docker/dev/docker-compose.dev.yml logs -f
 ```
 
-## Building Images Separately
-
-### Build API Image Only
+Show a single service:
 
 ```bash
-docker build -f docker/Dockerfile.api -t mindscribe-api:latest .
+docker compose -f docker/dev/docker-compose.dev.yml logs -f api
+docker compose -f docker/dev/docker-compose.dev.yml logs -f web
+docker compose -f docker/dev/docker-compose.dev.yml logs -f postgres
 ```
 
-### Build Web Image Only
+Rebuild the app images after Dockerfile changes:
 
 ```bash
-docker build -f docker/Dockerfile.web -t mindscribe-web:latest .
+docker compose -f docker/dev/docker-compose.dev.yml build api web
 ```
 
-### Run Built Images
+Equivalent `just` commands are also available from the repository root:
 
 ```bash
-# Run API
-docker run -p 8000:8000 \
-  -e MONGODB_URI=mongodb://mongo:27017/mindscribe \
-  mindscribe-api:latest
-
-# Run Web
-docker run -p 3000:80 \
-  mindscribe-web:latest
+just docker-dev-up
+just docker-dev-up-d
+just docker-dev-down
+just docker-dev-run build
+just docker-dev-run lint
+just docker-dev-run-ports db-studio
 ```
 
-## Docker Ignore Files
-
-Each app and package has a `.dockerignore` file that excludes:
-
-- `node_modules` - Dependencies (reinstalled in container)
-- `.git` - Version control
-- `.env.local` - Local configs (use .env)
-- `*.log` - Log files
-- `coverage` - Test coverage reports
-- `dist`, `build` - Build artifacts
-- `.turbo` - Monorepo cache
-
-This reduces image size and build time by ~70%.
-
-## Dockerfile Explanations
-
-### Dockerfile.api (Multi-stage)
-
-**Stage 1: Builder**
-
-```dockerfile
-FROM oven/bun:1.3.9 AS builder
-# Install all dependencies
-# Copy source code
-# Compile TypeScript to JavaScript
-# Result: /app/apps/api/dist with compiled code
-```
-
-**Stage 2: Production**
-
-```dockerfile
-FROM node:22-alpine
-# Copy only compiled code from builder
-# Install production dependencies with npm (smaller than bun)
-# Create non-root user
-# Expose port 8000
-# Use dumb-init for signal handling
-```
-
-**Why multi-stage?**
-
-- Builder stage: ~1.5GB (with bun and build tools)
-- Production stage: ~200MB (only runtime)
-- Final image: ~350-400MB (with dependencies)
-
-### Dockerfile.web (Multi-stage)
-
-**Stage 1: Builder**
-
-```dockerfile
-FROM oven/bun:1.3.9 AS builder
-# Install dependencies
-# Compile Vite app to static files
-# Result: /app/apps/web/dist with HTML, CSS, JS, assets
-```
-
-**Stage 2: Nginx**
-
-```dockerfile
-FROM nginx:alpine
-# Copy Nginx config
-# Copy dist folder from builder
-# Create non-root user
-# Expose port 80
-```
-
-**Why Nginx?**
-
-- Lightweight (~40MB)
-- Excellent static file serving
-- Built-in compression
-- Reverse proxy for API requests
-- Production-ready
-
-## Health Checks
-
-All services have health checks configured:
-
-```yaml
-healthcheck:
-  test: [check command]
-  interval: 30s # Check every 30 seconds
-  timeout: 10s # Timeout after 10 seconds
-  retries: 3 # Mark unhealthy after 3 failures
-  start_period: 40s # Grace period before first check
-```
-
-### API Health Check
+Run workspace-level commands from the dev Compose file:
 
 ```bash
-curl http://localhost:8000/health
+docker compose -f docker/dev/docker-compose.dev.yml run --rm build
+docker compose -f docker/dev/docker-compose.dev.yml run --rm lint
+docker compose -f docker/dev/docker-compose.dev.yml run --rm format
+docker compose -f docker/dev/docker-compose.dev.yml run --rm type-check
+docker compose -f docker/dev/docker-compose.dev.yml run --rm clean
+docker compose -f docker/dev/docker-compose.dev.yml run --rm db-generate
+docker compose -f docker/dev/docker-compose.dev.yml run --rm db-push
 ```
 
-Requires health endpoint in your API.
-
-### MongoDB Health Check
+Run the full Turborepo dev workflow in one container when needed:
 
 ```bash
-mongosh mongodb://mindscribe:password@localhost:27017 --eval "db.runCommand('ping')"
+docker compose -f docker/dev/docker-compose.dev.yml --profile commands up workspace-dev
 ```
 
-### Web Health Check
+Open Drizzle Studio from the dev Compose file:
 
 ```bash
-wget http://localhost:3000/
+docker compose -f docker/dev/docker-compose.dev.yml run --rm --service-ports db-studio
 ```
 
-## Security Features
+## Production
 
-1. **Non-root Users**
-   - API: `nodejs` user (uid: 1001)
-   - Web: `nginx-user` user (uid: 1001)
-   - Prevents container escape vulnerabilities
+The production workflow lives in [docker/prod/docker-compose.prod.yml](../docker/prod/docker-compose.prod.yml).
 
-2. **Minimal Base Images**
-   - node:22-alpine: ~350MB
-   - nginx:alpine: ~40MB
-   - Reduces attack surface
+### Production quick start
 
-3. **Read-only Root Filesystem** (Optional addition)
-
-   ```yaml
-   security_opt:
-     - no-new-privileges:true
-   read_only: true
-   ```
-
-4. **Resource Limits** (Optional addition)
-   ```yaml
-   deploy:
-     resources:
-       limits:
-         cpus: "1"
-         memory: 512M
-       reservations:
-         cpus: "0.5"
-         memory: 256M
-   ```
-
-## Performance Optimization
-
-### API Optimization
-
-- Multi-stage build removes 1GB+ of build artifacts
-- Production dependencies only (no devDependencies)
-- Alpine Linux: smaller base image
-- Non-root user: security best practice
-
-### Web Optimization
-
-- Gzip compression: ~70% size reduction
-- Cache busting: HTML never cached
-- Long-term caching: JS/CSS/images cached for 1 year
-- CDN-ready: Static files with immutable headers
-
-### Build Performance
-
-- .dockerignore files reduce context size
-- Caching: Unchanged layers reused
-- Parallel builds: With `docker-compose --parallel`
-
-## Common Troubleshooting
-
-### Services won't start
+1. Set production-ready values in `.env`, especially `SECRET_KEY`, OAuth credentials, database credentials, `FRONTEND_URL`, and `BACKEND_URL`.
+2. Start the production stack:
 
 ```bash
-# Check logs
-docker-compose logs api
-docker-compose logs mongo
-
-# Check port availability
-netstat -tulpn | grep 8000
-netstat -tulpn | grep 27017
+docker compose -f docker/prod/docker-compose.prod.yml up --build -d
 ```
 
-### Database connection fails
+1. Open the app at <http://localhost>.
+
+### Production architecture
+
+- [docker/prod/Dockerfile.api.prod](../docker/prod/Dockerfile.api.prod) builds the API and runs the compiled output.
+- [docker/prod/Dockerfile.web.prod](../docker/prod/Dockerfile.web.prod) builds the frontend and serves it from Nginx.
+- [docker/prod/nginx.prod.conf](../docker/prod/nginx.prod.conf) serves the SPA, caches static assets, and proxies `/api/` to the internal API service.
+
+### Production commands
+
+Follow logs:
 
 ```bash
-# Verify MongoDB is healthy
-docker-compose exec mongo mongosh -u mindscribe -p mindscribe_password
-
-# Check network connectivity
-docker-compose exec api ping mongo
-docker-compose exec api curl http://mongo:27017
+docker compose -f docker/prod/docker-compose.prod.yml logs -f
 ```
 
-### Build fails
+Stop the production stack:
 
 ```bash
-# Force rebuild without cache
-docker-compose build --no-cache
-
-# Check build logs
-docker build -f docker/Dockerfile.api . --verbose
+docker compose -f docker/prod/docker-compose.prod.yml down
 ```
 
-### Container runs out of memory
+Equivalent production `just` commands:
 
 ```bash
-# Increase Docker memory limit
-# Mac/Windows: Docker Desktop → Preferences → Resources → Memory
-
-# Or add limits to docker-compose.yml:
-services:
-  api:
-    deploy:
-      resources:
-        limits:
-          memory: 1G
+just docker-prod-up
+just docker-prod-logs
+just docker-prod-down
 ```
 
-## Production Deployment
+## Notes
 
-### Using Docker Swarm
-
-```bash
-# Initialize swarm
-docker swarm init
-
-# Deploy stack
-docker stack deploy -c docker-compose.yml mindscribe
-```
-
-### Using Kubernetes
-
-```bash
-# Convert compose to Kubernetes manifests
-kompose convert
-
-# Deploy
-kubectl apply -f .
-```
-
-### Using Cloud Platforms
-
-**AWS ECS**
-
-```bash
-# Create ECR repositories
-aws ecr create-repository --repository-name mindscribe-api
-aws ecr create-repository --repository-name mindscribe-web
-
-# Push images
-docker tag mindscribe-api:latest <account>.dkr.ecr.<region>.amazonaws.com/mindscribe-api:latest
-docker push <account>.dkr.ecr.<region>.amazonaws.com/mindscribe-api:latest
-```
-
-**Google Cloud Run**
-
-```bash
-# Build and push
-gcloud builds submit --tag gcr.io/<project>/mindscribe-api
-
-# Deploy
-gcloud run deploy mindscribe-api --image gcr.io/<project>/mindscribe-api
-```
-
-**Azure Container Instances**
-
-```bash
-# Build and push
-az acr build --registry <registry> --image mindscribe-api:latest .
-
-# Deploy
-az container create --image <registry>.azurecr.io/mindscribe-api:latest
-```
-
-## Monitoring
-
-### Container Metrics
-
-```bash
-# Real-time stats
-docker stats
-
-# Container logs with timestamps
-docker-compose logs --timestamps
-
-# Follow specific service
-docker-compose logs -f api
-```
-
-### Performance Monitoring
-
-```bash
-# Check image sizes
-docker images | grep mindscribe
-
-# Container inspect
-docker inspect mindscribe-api
-
-# Disk usage
-docker system df
-```
-
-## Cleanup
-
-### Remove all containers
-
-```bash
-docker-compose down
-```
-
-### Remove all containers and volumes
-
-```bash
-docker-compose down -v
-```
-
-### Remove unused Docker resources
-
-```bash
-docker system prune        # Remove unused items
-docker system prune -a     # Remove all unused items including images
-docker volume prune        # Remove unused volumes
-```
-
-## Next Steps
-
-1. **Configure OAuth credentials** in .env
-2. **Set up MongoDB Atlas** for databases (optional)
-3. **Deploy to production** using your preferred platform
-4. **Setup CI/CD** to automatically build and push images
-5. **Monitor logs and metrics** in production
-6. **Implement backup strategy** for MongoDB data
+- [docker/dev/Dockerfile.api.dev](../docker/dev/Dockerfile.api.dev) and [docker/dev/Dockerfile.web.dev](../docker/dev/Dockerfile.web.dev) are used for development.
+- [docker/dev/docker-compose.dev.yml](../docker/dev/docker-compose.dev.yml) also includes one-off command services for build, lint, format, type-check, clean, and database tasks.
+- [Justfile](../Justfile) wraps the most common Bun and Docker workflows in one place.
+- The production Nginx entrypoint and production Dockerfiles live under [docker/prod](../docker/prod).
+- Development does not use Nginx; Nginx is only part of the production web image.
+- The production web image expects `VITE_API_BASE_URL` to stay aligned with the Nginx proxy path, which defaults to `/api`.

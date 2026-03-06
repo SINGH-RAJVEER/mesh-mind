@@ -82,7 +82,7 @@ This project follows a clean monorepo architecture with:
    Using Docker (recommended):
 
    ```bash
-   docker-compose up -d postgres
+   docker compose -f docker/dev/docker-compose.dev.yml up -d postgres
    ````
 
    Or install locally:
@@ -175,6 +175,21 @@ This project follows a clean monorepo architecture with:
 
 ## Available Scripts
 
+## Just Commands
+
+This repository now includes a root [Justfile](Justfile) for common local and Docker workflows.
+
+Examples:
+
+```bash
+just install
+just dev
+just build
+just docker-dev-up
+just docker-dev-run lint
+just docker-prod-up
+```
+
 ### Root Level
 
 - `bun run dev` - Start all packages in development mode
@@ -245,10 +260,16 @@ mind-scribe/
 │       ├── tsconfig.json
 │       └── package.json
 ├── docker/
-│   ├── Dockerfile.api
-│   ├── Dockerfile.web
-│   ├── init-pgvector.sql    # PostgreSQL initialization
-│   └── nginx.conf
+│   ├── dev/
+│   │   ├── Dockerfile.api.dev
+│   │   ├── Dockerfile.web.dev
+│   │   └── docker-compose.dev.yml
+│   ├── prod/
+│   │   ├── Dockerfile.api.prod
+│   │   ├── Dockerfile.web.prod
+│   │   ├── docker-compose.prod.yml
+│   │   └── nginx.prod.conf
+│   └── init-pgvector.sql    # PostgreSQL initialization
 ├── docs/
 │   ├── VECTOR_EMBEDDINGS.md       # Complete embeddings guide
 │   ├── QUICKSTART_EMBEDDINGS.md   # Quick start guide
@@ -258,7 +279,6 @@ mind-scribe/
 ├── scripts/
 │   └── check-embeddings.sh  # Health check script
 ├── turbo.json                # Turborepo config
-├── docker-compose.yml        # Docker services (MongoDB, PostgreSQL, API, Web)
 ├── package.json              # Root workspace config
 └── README.md
 ```
@@ -287,7 +307,7 @@ MindScribe now includes intelligent context retrieval using vector embeddings! T
 
 ```bash
 # Start PostgreSQL with pgvector
-docker-compose up -d postgres
+docker compose -f docker/dev/docker-compose.dev.yml up -d postgres
 
 # Verify setup
 ./scripts/check-embeddings.sh

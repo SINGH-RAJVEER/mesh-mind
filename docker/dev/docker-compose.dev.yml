@@ -1,0 +1,249 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: mindscribe-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mindscribe}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../init-pgvector.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - mindscribe-network
+
+  api:
+    build:
+      context: ../..
+      dockerfile: ./docker/dev/Dockerfile.api.dev
+    container_name: mindscribe-api
+    init: true
+    working_dir: /app/apps/api
+    command: bun run dev
+    environment: &workspace-environment
+      NODE_ENV: development
+      SECRET_KEY: ${SECRET_KEY}
+      PORT: ${PORT:-8000}
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:8000}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      LLM_BASE_URL: ${LLM_BASE_URL}
+      LLM_MODEL: ${LLM_MODEL}
+      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_EMBEDDING_MODEL: ${LLM_EMBEDDING_MODEL:-text-embedding-004}
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-mindscribe}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+      VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+      VITE_GITHUB_CLIENT_ID: ${VITE_GITHUB_CLIENT_ID}
+    ports:
+      - "8000:8000"
+    depends_on: &workspace-depends-on
+      postgres:
+        condition: service_healthy
+    volumes: &workspace-volumes
+      - ../..:/app
+      - mindscribe_node_modules:/app/node_modules
+      - bun_install_cache:/root/.bun/install/cache
+    networks:
+      - mindscribe-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "fetch('http://127.0.0.1:8000/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  web:
+    build:
+      context: ../..
+      dockerfile: ./docker/dev/Dockerfile.web.dev
+    container_name: mindscribe-web
+    init: true
+    working_dir: /app/apps/web
+    command: bun run dev --host 0.0.0.0 --port 3000
+    environment:
+      <<: *workspace-environment
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes: *workspace-volumes
+    networks:
+      - mindscribe-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "fetch('http://127.0.0.1:3000').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  workspace-dev:
+    build:
+      context: ../..
+      dockerfile: ./docker/dev/Dockerfile.api.dev
+    container_name: mindscribe-workspace-dev
+    working_dir: /app
+    command: bun run dev
+    environment: *workspace-environment
+    depends_on: *workspace-depends-on
+    volumes: *workspace-volumes
+    networks:
+      - mindscribe-network
+    profiles: ["commands"]
+    ports:
+      - "8000:8000"
+      - "3000:3000"
+
+  build:
+    build:
+      context: ../..
+      dockerfile: ./docker/dev/Dockerfile.api.dev
+    container_name: mindscribe-build
+    working_dir: /app
+    command: bun run build
+    environment: *workspace-environment
+    depends_on: *workspace-depends-on
+    volumes: *workspace-volumes
+    networks:
+      - mindscribe-network
+    profiles: ["commands"]
+
+  lint:
+    build:
+      context: ../..
+      dockerfile: ./docker/dev/Dockerfile.api.dev
+    container_name: mindscribe-lint
+    working_dir: /app
+    command: bun run lint
+    environment: *workspace-environment
+    depends_on: *workspace-depends-on
+    volumes: *workspace-volumes
+    networks:
+      - mindscribe-network
+    profiles: ["commands"]
+
+  format:
+    build:
+      context: ../..
+      dockerfile: ./docker/dev/Dockerfile.api.dev
+    container_name: mindscribe-format
+    working_dir: /app
+    command: bun run format
+    environment: *workspace-environment
+    depends_on: *workspace-depends-on
+    volumes: *workspace-volumes
+    networks:
+      - mindscribe-network
+    profiles: ["commands"]
+
+  type-check:
+    build:
+      context: ../..
+      dockerfile: ./docker/dev/Dockerfile.api.dev
+    container_name: mindscribe-type-check
+    working_dir: /app
+    command: bun run type-check
+    environment: *workspace-environment
+    depends_on: *workspace-depends-on
+    volumes: *workspace-volumes
+    networks:
+      - mindscribe-network
+    profiles: ["commands"]
+
+  clean:
+    build:
+      context: ../..
+      dockerfile: ./docker/dev/Dockerfile.api.dev
+    container_name: mindscribe-clean
+    working_dir: /app
+    command: bun run clean
+    environment: *workspace-environment
+    depends_on: *workspace-depends-on
+    volumes: *workspace-volumes
+    networks:
+      - mindscribe-network
+    profiles: ["commands"]
+
+  db-generate:
+    build:
+      context: ../..
+      dockerfile: ./docker/dev/Dockerfile.api.dev
+    container_name: mindscribe-db-generate
+    working_dir: /app
+    command: bun run --filter=@mindscribe/database db:generate
+    environment: *workspace-environment
+    depends_on: *workspace-depends-on
+    volumes: *workspace-volumes
+    networks:
+      - mindscribe-network
+    profiles: ["commands"]
+
+  db-push:
+    build:
+      context: ../..
+      dockerfile: ./docker/dev/Dockerfile.api.dev
+    container_name: mindscribe-db-push
+    working_dir: /app
+    command: bun run --filter=@mindscribe/database db:push
+    environment: *workspace-environment
+    depends_on: *workspace-depends-on
+    volumes: *workspace-volumes
+    networks:
+      - mindscribe-network
+    profiles: ["commands"]
+
+  db-studio:
+    build:
+      context: ../..
+      dockerfile: ./docker/dev/Dockerfile.api.dev
+    container_name: mindscribe-db-studio
+    working_dir: /app
+    command: bun run --filter=@mindscribe/database db:studio --host 0.0.0.0 --port 4983
+    environment: *workspace-environment
+    depends_on: *workspace-depends-on
+    volumes: *workspace-volumes
+    networks:
+      - mindscribe-network
+    profiles: ["commands"]
+    ports:
+      - "4983:4983"
+
+volumes:
+  postgres_data:
+    driver: local
+  mindscribe_node_modules:
+  bun_install_cache:
+
+networks:
+  mindscribe-network:
+    driver: bridge

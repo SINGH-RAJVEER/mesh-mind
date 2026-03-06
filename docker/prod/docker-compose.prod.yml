@@ -1,20 +1,15 @@
-version: "3.8"
-
 services:
-  # PostgreSQL with pgvector
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: mindscribe-postgres
+    container_name: mindscribe-postgres-prod
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-mindscribe}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./docker/init-pgvector.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_prod_data:/var/lib/postgresql/data
+      - ../init-pgvector.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
@@ -24,19 +19,18 @@ services:
     networks:
       - mindscribe-network
 
-  # Backend API Service
   api:
     build:
-      context: .
-      dockerfile: ./docker/Dockerfile.api
-    container_name: mindscribe-api
+      context: ../..
+      dockerfile: ./docker/prod/Dockerfile.api.prod
+    container_name: mindscribe-api-prod
     restart: unless-stopped
     environment:
-      NODE_ENV: ${NODE_ENV}
+      NODE_ENV: production
       SECRET_KEY: ${SECRET_KEY}
-      PORT: ${PORT}
-      BACKEND_URL: ${BACKEND_URL}
-      FRONTEND_URL: ${FRONTEND_URL}
+      PORT: 8000
+      BACKEND_URL: ${BACKEND_URL:-http://localhost/api}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
       LLM_BASE_URL: ${LLM_BASE_URL}
       LLM_MODEL: ${LLM_MODEL}
       LLM_API_KEY: ${LLM_API_KEY}
@@ -50,47 +44,52 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./apps/api/src:/app/apps/api/src
     networks:
       - mindscribe-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "fetch('http://127.0.0.1:8000/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
-  # Frontend Web Service
   web:
     build:
-      context: .
-      dockerfile: ./docker/Dockerfile.web
-    container_name: mindscribe-web
+      context: ../..
+      dockerfile: ./docker/prod/Dockerfile.web.prod
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+        VITE_GITHUB_CLIENT_ID: ${VITE_GITHUB_CLIENT_ID}
+    container_name: mindscribe-web-prod
     restart: unless-stopped
-    environment:
-      VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
-      VITE_GITHUB_CLIENT_ID: ${VITE_GITHUB_CLIENT_ID}
     ports:
-      - "3000:80"
+      - "80:80"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     networks:
       - mindscribe-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 10s
 
 volumes:
-  postgres_data:
+  postgres_prod_data:
     driver: local
 
 networks:

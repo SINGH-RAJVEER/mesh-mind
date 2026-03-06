@@ -1,45 +1,33 @@
 # AGENTS.md
 
-This file defines how AI agents should behave in this repository.
+Rules for AI agents in this repository.
 
 ## Package Manager
 
-- **Always use `bun` as the package manager** for this repository.
+- Always use `bun`.
 - Use `bun install`, `bun run <script>`, `bun add <package>`, etc.
-- Never use npm, yarn, or pnpm commands in this repository.
+- Never use npm, yarn, or pnpm.
 
 ## Shell environment
 
-- The default interactive terminal for this repo is **Nu shell (nushell)**.
-- **However, when running commands, always use Bash syntax** (POSIX/GNU tooling, pipes, `&&`, globs, etc.).
-- To do that safely from Nu, **invoke Bash explicitly**.
+- The interactive shell is **Nu (nushell)**.
+- Always run commands with Bash syntax.
+- Invoke Bash explicitly.
 
 ### Required rule
 
-When you need to execute a command, run it through Bash using the `bash` keyword:
+Run commands as:
 
-- Prefer:
-  - `bash -lc '<your bash command(s)>'`
+- `bash -lc '<your command(s)>'`
 
-`-l` loads a login shell (consistent PATH), and `-c` runs the command string.
+`-l` loads PATH, `-c` runs the command string.
 
 ### Examples
 
-Run a single command:
-
 - `bash -lc 'ls -la'`
-
-Run multiple commands:
-
 - `bash -lc 'cd apps/api && bun install && bun test'`
-
-Use Bash-only features (globs, pipes, subshells):
-
 - `bash -lc 'cat apps/api/package.json | jq .name'`
 - `bash -lc 'for f in apps/*/package.json; do echo "$f"; done'`
-
-Longer scripts (recommended):
-
 - `bash -lc 'set -euo pipefail
   cd apps/api
   bun run lint
@@ -49,11 +37,16 @@ Longer scripts (recommended):
 ## Output formatting for agents
 
 - When showing commands in messages, use fenced code blocks labeled `bash`.
-- When actually executing commands from Nu, still wrap them as `bash -lc '…'`.
+- When executing from Nu, still use `bash -lc '…'`.
+
+## Documentation updates
+
+- Always update documentation in `/docs` after updating a feature.
+- Create a new file in `/docs` only for an entirely new feature.
 
 ## Don’ts
 
 - Don’t use Nu-specific pipelines/filters (`where`, `each`, `select`, etc.) in command suggestions.
 - Don’t assume the terminal understands Bash syntax unless it is executed via `bash -lc`.
 - Don't run interactive Bash sessions unless explicitly required.
-- **Never use emojis anywhere** in documentation or messages.
+- Never use emojis in documentation or messages.
