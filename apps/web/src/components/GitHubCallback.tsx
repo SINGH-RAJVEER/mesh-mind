@@ -1,7 +1,7 @@
-import AuthCallback from "./AuthCallback";
+import AuthCallback from "./AuthCallback"
 
 function GitHubCallback() {
-  return <AuthCallback />;
+    return <AuthCallback />
 }
 
-export default GitHubCallback;
+export default GitHubCallback

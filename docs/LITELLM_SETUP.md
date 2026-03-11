@@ -27,7 +27,7 @@ Database and server variables remain:
 ```env
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
-POSTGRES_DB=mindscribe
+POSTGRES_DB=meshmind
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=your_secure_postgres_password
 PORT=8000
@@ -35,7 +35,7 @@ BACKEND_URL=http://localhost:8000
 FRONTEND_URL=http://localhost:5173
 ```
 
-## How Mind Scribe uses them
+## How MeshMind uses them
 
 - [apps/api/src/utils/litellmManager.ts](apps/api/src/utils/litellmManager.ts) uses `GROQ_API_KEY` for chat completions.
 - [apps/api/src/utils/embeddingsManager.ts](apps/api/src/utils/embeddingsManager.ts) uses `GEMINI_API_KEY` for embeddings.
@@ -65,7 +65,7 @@ Start LiteLLM:
 litellm --config config.yaml --port 4000
 ```
 
-Do not point `LLM_BASE_URL` at the MindScribe API itself. The API runs on port `8000`, while LiteLLM runs separately on port `4000`.
+Do not point `LLM_BASE_URL` at the MeshMind API itself. The API runs on port `8000`, while LiteLLM runs separately on port `4000`.
 
 The repository also includes a Compose-managed LiteLLM config at [docker/litellm/config.yaml](../docker/litellm/config.yaml) with aliases for `text-embedding-004` and `gpt-3.5-turbo`.
 

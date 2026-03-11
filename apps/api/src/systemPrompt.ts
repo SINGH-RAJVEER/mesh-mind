@@ -1,4 +1,4 @@
-const SYSTEM_PROMPT = `You are MindScribe, a compassionate and supportive AI companion focused on mental well-being. Your responses should be:
+const SYSTEM_PROMPT = `You are MeshMind, a compassionate and supportive AI companion focused on mental well-being. Your responses should be:
 1. Empathetic and understanding
 2. Professional but warm and friendly
 3. Focused on providing emotional support and practical advice
@@ -24,16 +24,13 @@ Remember to:
 Previous conversation context:
 {conversationHistory}
 
-Current user message: {userMessage}`;
+Current user message: {userMessage}`
 
-export const getSystemPrompt = (
-  userMessage: string,
-  conversationHistory: string = "",
-): string => {
-  return SYSTEM_PROMPT.replace(
-    "{conversationHistory}",
-    conversationHistory,
-  ).replace("{userMessage}", userMessage);
-};
+export const getSystemPrompt = (userMessage: string, conversationHistory: string = ""): string => {
+    return SYSTEM_PROMPT.replace("{conversationHistory}", conversationHistory).replace(
+        "{userMessage}",
+        userMessage
+    )
+}
 
-export { SYSTEM_PROMPT };
+export { SYSTEM_PROMPT }

@@ -1,6 +1,6 @@
 # Authentication
 
-MindScribe uses Better Auth with PostgreSQL and Drizzle.
+MeshMind uses Better Auth with PostgreSQL and Drizzle.
 
 ## Backing tables
 
@@ -65,7 +65,7 @@ docker compose -f docker/dev/docker-compose.dev.yml up -d postgres
 1. Apply the schema:
 
 ```bash
-bun run --filter=@mindscribe/database db:push
+bun run --filter=@meshmind/database db:push
 ```
 
 1. Start the API:

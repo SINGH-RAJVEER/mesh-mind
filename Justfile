@@ -64,13 +64,13 @@ db-dev:
   cd packages/database && bun run dev
 
 db-generate:
-  bun run --filter=@mindscribe/database db:generate
+  bun run --filter=@meshmind/database db:generate
 
 db-push:
-  bun run --filter=@mindscribe/database db:push
+  bun run --filter=@meshmind/database db:push
 
 db-studio:
-  bun run --filter=@mindscribe/database db:studio
+  bun run --filter=@meshmind/database db:studio
 
 postgres-up:
   docker compose -f docker/dev/docker-compose.dev.yml up -d postgres

@@ -39,6 +39,11 @@ Run commands as:
 - When showing commands in messages, use fenced code blocks labeled `bash`.
 - When executing from Nu, still use `bash -lc '…'`.
 
+## Indentation
+
+- Always use 4 spaces for indentation everywhere in this repository.
+- Do not use tabs for indentation.
+
 ## Documentation updates
 
 - Always update documentation in `/docs` after updating a feature.

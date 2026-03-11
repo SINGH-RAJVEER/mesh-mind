@@ -15,4 +15,4 @@ COPY packages ./packages
 
 EXPOSE 8000
 
-CMD ["bun", "run", "--filter=@mindscribe/api", "dev"]
+CMD ["bun", "run", "--filter=@meshmind/api", "dev"]

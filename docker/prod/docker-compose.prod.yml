@@ -3,7 +3,7 @@ services:
     env_file:
       - ../../.env
     image: pgvector/pgvector:pg16
-    container_name: mindscribe-postgres-prod
+    container_name: meshmind-postgres-prod
     restart: unless-stopped
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
@@ -15,13 +15,13 @@ services:
       retries: 5
       start_period: 40s
     networks:
-      - mindscribe-network
+      - meshmind-network
 
   litellm:
     env_file: &workspace-env-file
       - ../../.env
     image: ghcr.io/berriai/litellm:main-stable
-    container_name: mindscribe-litellm-prod
+    container_name: meshmind-litellm-prod
     restart: unless-stopped
     command:
       ["--config", "/app/config.yaml", "--port", "4000", "--host", "0.0.0.0"]
@@ -30,18 +30,18 @@ services:
     volumes:
       - ../litellm/config.yaml:/app/config.yaml:ro
     networks:
-      - mindscribe-network
+      - meshmind-network
 
   api:
     env_file: *workspace-env-file
     build:
       context: ../..
       dockerfile: ./docker/prod/Dockerfile.api.prod
-    container_name: mindscribe-api-prod
+    container_name: meshmind-api-prod
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      MINDSCRIBE_RUNTIME: docker
+      MESHMIND_RUNTIME: docker
       PORT: 8000
       BACKEND_URL: ${BACKEND_URL:-http://localhost/api}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
@@ -58,7 +58,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - mindscribe-network
+      - meshmind-network
     healthcheck:
       test:
         [
@@ -81,7 +81,7 @@ services:
         VITE_API_URL: ${VITE_API_URL:-/api}
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
         VITE_GITHUB_CLIENT_ID: ${VITE_GITHUB_CLIENT_ID:-}
-    container_name: mindscribe-web-prod
+    container_name: meshmind-web-prod
     restart: unless-stopped
     ports:
       - "80:80"
@@ -89,7 +89,7 @@ services:
       api:
         condition: service_healthy
     networks:
-      - mindscribe-network
+      - meshmind-network
     healthcheck:
       test:
         [
@@ -106,5 +106,5 @@ volumes:
     driver: local
 
 networks:
-  mindscribe-network:
+  meshmind-network:
     driver: bridge

@@ -3,7 +3,7 @@ services:
     env_file:
       - ../../.env
     image: pgvector/pgvector:pg16
-    container_name: mindscribe-postgres
+    container_name: meshmind-postgres
     restart: unless-stopped
     ports:
       - "5432:5432"
@@ -17,13 +17,13 @@ services:
       retries: 5
       start_period: 40s
     networks:
-      - mindscribe-network
+      - meshmind-network
 
   litellm:
     env_file: &workspace-env-file
       - ../../.env
     image: ghcr.io/berriai/litellm:main-stable
-    container_name: mindscribe-litellm
+    container_name: meshmind-litellm
     restart: unless-stopped
     command:
       ["--config", "/app/config.yaml", "--port", "4000", "--host", "0.0.0.0"]
@@ -32,20 +32,20 @@ services:
     volumes:
       - ../litellm/config.yaml:/app/config.yaml:ro
     networks:
-      - mindscribe-network
+      - meshmind-network
 
   api:
     env_file: *workspace-env-file
     build:
       context: ../..
       dockerfile: ./docker/dev/Dockerfile.api.dev
-    container_name: mindscribe-api
+    container_name: meshmind-api
     init: true
     working_dir: /app/apps/api
     command: bun run dev
     environment: &workspace-environment
       NODE_ENV: development
-      MINDSCRIBE_RUNTIME: docker
+      MESHMIND_RUNTIME: docker
       PORT: ${PORT:-8000}
       BACKEND_URL: ${BACKEND_URL:-http://localhost:8000}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
@@ -62,12 +62,12 @@ services:
         condition: service_started
     volumes: &workspace-volumes
       - ../..:/app
-      - mindscribe_node_modules:/app/node_modules
+      - meshmind_node_modules:/app/node_modules
       - bun_install_cache:/root/.bun/install/cache
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - mindscribe-network
+      - meshmind-network
     healthcheck:
       test:
         [
@@ -86,7 +86,7 @@ services:
     build:
       context: ../..
       dockerfile: ./docker/dev/Dockerfile.web.dev
-    container_name: mindscribe-web
+    container_name: meshmind-web
     init: true
     working_dir: /app/apps/web
     command: bun run dev --host 0.0.0.0 --port 3000
@@ -100,7 +100,7 @@ services:
         condition: service_healthy
     volumes: *workspace-volumes
     networks:
-      - mindscribe-network
+      - meshmind-network
     healthcheck:
       test:
         [
@@ -119,7 +119,7 @@ services:
     build:
       context: ../..
       dockerfile: ./docker/dev/Dockerfile.api.dev
-    container_name: mindscribe-workspace-dev
+    container_name: meshmind-workspace-dev
     working_dir: /app
     command: bun run dev
     environment: *workspace-environment
@@ -128,7 +128,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - mindscribe-network
+      - meshmind-network
     profiles: ["commands"]
     ports:
       - "8000:8000"
@@ -139,14 +139,14 @@ services:
     build:
       context: ../..
       dockerfile: ./docker/dev/Dockerfile.api.dev
-    container_name: mindscribe-build
+    container_name: meshmind-build
     working_dir: /app
     command: bun run build
     environment: *workspace-environment
     depends_on: *workspace-depends-on
     volumes: *workspace-volumes
     networks:
-      - mindscribe-network
+      - meshmind-network
     profiles: ["commands"]
 
   lint:
@@ -154,14 +154,14 @@ services:
     build:
       context: ../..
       dockerfile: ./docker/dev/Dockerfile.api.dev
-    container_name: mindscribe-lint
+    container_name: meshmind-lint
     working_dir: /app
     command: bun run lint
     environment: *workspace-environment
     depends_on: *workspace-depends-on
     volumes: *workspace-volumes
     networks:
-      - mindscribe-network
+      - meshmind-network
     profiles: ["commands"]
 
   format:
@@ -169,14 +169,14 @@ services:
     build:
       context: ../..
       dockerfile: ./docker/dev/Dockerfile.api.dev
-    container_name: mindscribe-format
+    container_name: meshmind-format
     working_dir: /app
     command: bun run format
     environment: *workspace-environment
     depends_on: *workspace-depends-on
     volumes: *workspace-volumes
     networks:
-      - mindscribe-network
+      - meshmind-network
     profiles: ["commands"]
 
   type-check:
@@ -184,14 +184,14 @@ services:
     build:
       context: ../..
       dockerfile: ./docker/dev/Dockerfile.api.dev
-    container_name: mindscribe-type-check
+    container_name: meshmind-type-check
     working_dir: /app
     command: bun run type-check
     environment: *workspace-environment
     depends_on: *workspace-depends-on
     volumes: *workspace-volumes
     networks:
-      - mindscribe-network
+      - meshmind-network
     profiles: ["commands"]
 
   clean:
@@ -199,14 +199,14 @@ services:
     build:
       context: ../..
       dockerfile: ./docker/dev/Dockerfile.api.dev
-    container_name: mindscribe-clean
+    container_name: meshmind-clean
     working_dir: /app
     command: bun run clean
     environment: *workspace-environment
     depends_on: *workspace-depends-on
     volumes: *workspace-volumes
     networks:
-      - mindscribe-network
+      - meshmind-network
     profiles: ["commands"]
 
   db-generate:
@@ -214,14 +214,14 @@ services:
     build:
       context: ../..
       dockerfile: ./docker/dev/Dockerfile.api.dev
-    container_name: mindscribe-db-generate
+    container_name: meshmind-db-generate
     working_dir: /app
-    command: bun run --filter=@mindscribe/database db:generate
+    command: bun run --filter=@meshmind/database db:generate
     environment: *workspace-environment
     depends_on: *workspace-depends-on
     volumes: *workspace-volumes
     networks:
-      - mindscribe-network
+      - meshmind-network
     profiles: ["commands"]
 
   db-push:
@@ -229,14 +229,14 @@ services:
     build:
       context: ../..
       dockerfile: ./docker/dev/Dockerfile.api.dev
-    container_name: mindscribe-db-push
+    container_name: meshmind-db-push
     working_dir: /app
-    command: bun run --filter=@mindscribe/database db:push
+    command: bun run --filter=@meshmind/database db:push
     environment: *workspace-environment
     depends_on: *workspace-depends-on
     volumes: *workspace-volumes
     networks:
-      - mindscribe-network
+      - meshmind-network
     profiles: ["commands"]
 
   db-studio:
@@ -244,14 +244,14 @@ services:
     build:
       context: ../..
       dockerfile: ./docker/dev/Dockerfile.api.dev
-    container_name: mindscribe-db-studio
+    container_name: meshmind-db-studio
     working_dir: /app
-    command: bun run --filter=@mindscribe/database db:studio --host 0.0.0.0 --port 4983
+    command: bun run --filter=@meshmind/database db:studio --host 0.0.0.0 --port 4983
     environment: *workspace-environment
     depends_on: *workspace-depends-on
     volumes: *workspace-volumes
     networks:
-      - mindscribe-network
+      - meshmind-network
     profiles: ["commands"]
     ports:
       - "4983:4983"
@@ -259,9 +259,9 @@ services:
 volumes:
   postgres_data:
     driver: local
-  mindscribe_node_modules:
+  meshmind_node_modules:
   bun_install_cache:
 
 networks:
-  mindscribe-network:
+  meshmind-network:
     driver: bridge

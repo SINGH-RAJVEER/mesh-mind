@@ -39,7 +39,7 @@ Drizzle owns the PostgreSQL schema and connection layer.
 
 ## Database tables
 
-MindScribe stores all persisted data in PostgreSQL:
+MeshMind stores all persisted data in PostgreSQL:
 
 - `users`
 - `accounts`
@@ -62,7 +62,7 @@ Core database variables:
 ```env
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
-POSTGRES_DB=mindscribe
+POSTGRES_DB=meshmind
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=your_password
 ```

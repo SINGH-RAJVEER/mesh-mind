@@ -6,7 +6,7 @@
 set -euo pipefail
 
 echo "========================================="
-echo "  MindScribe Vector Embeddings Check"
+echo "  MeshMind Vector Embeddings Check"
 echo "========================================="
 echo ""
 
@@ -16,8 +16,8 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-API_CONTAINER="${API_CONTAINER:-mindscribe-api}"
-POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-mindscribe-postgres}"
+API_CONTAINER="${API_CONTAINER:-meshmind-api}"
+POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-meshmind-postgres}"
 API_URL="${API_URL:-http://localhost:8000/health}"
 
 if ! command -v docker > /dev/null 2>&1; then
@@ -33,7 +33,7 @@ get_container_env() {
 }
 
 POSTGRES_DB="$(get_container_env "$API_CONTAINER" POSTGRES_DB)"
-POSTGRES_DB="${POSTGRES_DB:-mindscribe}"
+POSTGRES_DB="${POSTGRES_DB:-meshmind}"
 POSTGRES_USER="$(get_container_env "$API_CONTAINER" POSTGRES_USER)"
 POSTGRES_USER="${POSTGRES_USER:-postgres}"
 POSTGRES_HOST="$(get_container_env "$API_CONTAINER" POSTGRES_HOST)"

@@ -1,6 +1,6 @@
-# MindScribe
+# MeshMind
 
-MindScribe is an AI mental well-being companion built as a Bun monorepo. The app now uses PostgreSQL as the only database, with Drizzle managing the relational schema and pgvector powering semantic retrieval.
+MeshMind is an AI mental well-being companion built as a Bun monorepo. The app now uses PostgreSQL as the only database, with Drizzle managing the relational schema and pgvector powering semantic retrieval.
 
 ## Stack
 
@@ -62,7 +62,7 @@ All persisted application data lives in PostgreSQL:
 4. Apply the Drizzle schema:
 
    ```bash
-   bun run --filter=@mindscribe/database db:push
+   bun run --filter=@meshmind/database db:push
    ```
 
 5. Start the apps:

@@ -1,6 +1,6 @@
 # Vector Embeddings
 
-MindScribe stores semantic embeddings in PostgreSQL using pgvector. There is no secondary document database.
+MeshMind stores semantic embeddings in PostgreSQL using pgvector. There is no secondary document database.
 
 ## Storage model
 
@@ -23,7 +23,7 @@ Each `messages` row can have two embedding rows:
 ```env
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
-POSTGRES_DB=mindscribe
+POSTGRES_DB=meshmind
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=your_password
 
@@ -74,7 +74,7 @@ It also has:
 
 ```bash
 docker compose -f docker/dev/docker-compose.dev.yml up -d postgres
-bun run --filter=@mindscribe/database db:push
+bun run --filter=@meshmind/database db:push
 ./scripts/check-embeddings.sh
 ```
 

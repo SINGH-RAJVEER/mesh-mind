@@ -1,7 +1,7 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.5/schema.json",
   "files": {
-    "includes": ["**", "!**/dist/**", "!**/node_modules/**"]
+    "includes": ["**", "!**/dist", "!**/node_modules", "!**/.turbo"]
   },
   "linter": {
     "enabled": true,
@@ -12,7 +12,7 @@
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
-    "indentWidth": 2,
+    "indentWidth": 4,
     "lineWidth": 100
   },
   "javascript": {
