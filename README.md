@@ -1,21 +1,21 @@
-# MindScribe - AI Mental Well-being Companion
+# MeshMind - Universal LLM Chat Interface
 
-MindScribe is your friendly AI-assisted chat companion dedicated to mental well-being, built with a modern Turborepo monorepo architecture featuring full TypeScript support and shared packages.
+MeshMind is a responsive and friendly LLM chat interface that lets you connect to practically any model under the sun through a single, polished UX. It is built with a modern Turborepo monorepo architecture featuring full TypeScript support and shared packages.
 
 ## Features
 
-- **Instant Support:** Get quick responses with warm and empathetic advice.
-- **Personalized Conversations:** Enjoy discussions tailored to your feelings and needs.
-- **24/7 Availability:** Reach out any time. MindScribe is always ready to help.
-- **Secure & Confidential:** Your privacy is paramount. All conversations are local and therefore private and secure.
+- **Any Model, One Interface:** Connect to OpenAI-compatible endpoints via LiteLLM and switch providers easily.
+- **Responsive Chat UX:** Enjoy real-time streaming responses designed to feel fast and natural.
+- **Friendly Experience:** Clean, approachable interface focused on delightful day-to-day usage.
+- **Private by Design:** Run with your own local or hosted providers while keeping control of your data.
 
 ## Quick Start
 
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/SINGH-RAJVEER/MindScribe.git
-   cd mind-scribe
+   git clone https://github.com/SINGH-RAJVEER/mesh-mind.git
+   cd mesh-mind
    ```
 
 2. **Install dependencies:**
@@ -41,4 +41,4 @@ MindScribe is your friendly AI-assisted chat companion dedicated to mental well-
 
 ## License
 
-MindScribe is open-source under the [MIT License](LICENSE).
+MeshMind is open-source under the [MIT License](LICENSE).
