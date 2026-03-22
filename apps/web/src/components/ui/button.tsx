@@ -1,5 +1,5 @@
-import { cn } from "./utils"
 import { type JSX, splitProps } from "solid-js"
+import { cn } from "./utils"
 
 export type ButtonVariant = "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
 export type ButtonSize = "default" | "sm" | "lg" | "icon"

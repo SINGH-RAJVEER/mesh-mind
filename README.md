@@ -1,10 +1,10 @@
 # MeshMind
 
-MeshMind is an AI mental well-being companion built as a Bun monorepo. The app now uses PostgreSQL as the only database, with Drizzle managing the relational schema and pgvector powering semantic retrieval.
+MeshMind is an LLM-agnostic AI chat application built as a Bun monorepo. It connects to chat and embedding models through LiteLLM or any other OpenAI-compatible endpoint, while PostgreSQL, Drizzle, and pgvector handle persistence and semantic retrieval.
 
 ## Stack
 
-- API: Hono + Better Auth + Drizzle ORM
+- API: Hono + Better Auth + Drizzle ORM + OpenAI-compatible LLM routing
 - Web: SolidJS + Vite
 - Database: PostgreSQL 16 + pgvector
 - Tooling: Bun + Turbo + Biome
@@ -12,7 +12,7 @@ MeshMind is an AI mental well-being companion built as a Bun monorepo. The app n
 ## Workspace layout
 
 - `apps/api` — Hono API and auth endpoints
-- `apps/web` — SolidJS frontend
+- `apps/web` — SolidJS frontend for authenticated AI chat
 - `packages/database` — Drizzle schema, PostgreSQL connection, database utilities
 - `packages/types` — shared TypeScript types
 - `docker` — local and production containers
@@ -95,6 +95,7 @@ Important backend variables:
 - `BETTER_AUTH_SECRET`
 - `LLM_MODEL`
 - `LLM_EMBEDDING_MODEL`
+- `LLM_BASE_URL`
 
 Docker Compose wires the API to the internal `litellm` service automatically, so `LLM_BASE_URL` usually does not need to be set in `.env` for containerized runs.
 

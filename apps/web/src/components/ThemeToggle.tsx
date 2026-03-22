@@ -1,6 +1,6 @@
+import { Moon, Sun } from "lucide-solid"
 import { createEffect, createSignal } from "solid-js"
 import { Button } from "./ui/button"
-import { Sun, Moon } from "lucide-solid"
 
 const getSystemTheme = () =>
     window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"

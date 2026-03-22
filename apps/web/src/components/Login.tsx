@@ -1,12 +1,12 @@
-import { createSignal, Show } from "solid-js"
 import { A } from "@solidjs/router"
-import { Heart, Github } from "lucide-solid"
-import { useLogin } from "../hooks/useLogin"
+import { Github } from "lucide-solid"
+import { createSignal, Show } from "solid-js"
 import authAPI from "../api/authAPI"
-import { Input } from "./ui/input"
-import { Button } from "./ui/button"
+import { useLogin } from "../hooks/useLogin"
 import ThemeToggle from "./ThemeToggle"
 import { toast } from "./Toast"
+import { Button } from "./ui/button"
+import { Input } from "./ui/input"
 
 const GoogleLogo = () => (
     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
@@ -65,13 +65,11 @@ function Login() {
             <div className="w-full max-w-md space-y-8">
                 {/* Header */}
                 <div className="text-center">
-                    <div className="flex justify-center mb-4">
-                        <Heart className="h-12 w-12 text-primary" />
-                    </div>
-                    <h2 className="text-3xl font-bold text-foreground">Welcome back</h2>
-                    <p className="mt-2 text-muted-foreground">
-                        Sign in to continue your mental wellness journey
-                    </p>
+                    <div className="mb-4 h-12 w-12 mx-auto rounded-lg border border-dashed border-border bg-muted/50" />
+                    <h2 className="text-3xl font-bold text-foreground">
+                        [Login Title Placeholder]
+                    </h2>
+                    <p className="mt-2 text-muted-foreground">[Login subtitle placeholder]</p>
                 </div>
 
                 {/* Email & Password Form */}

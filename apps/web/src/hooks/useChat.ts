@@ -1,7 +1,7 @@
-import { createSignal, createResource } from "solid-js"
-import { fetchChatHistory, sendMessageStream, deleteChat } from "../api/chatApi"
-import { useChatStore } from "../store/chatStore"
+import { createResource, createSignal } from "solid-js"
+import { deleteChat, fetchChatHistory, sendMessageStream } from "../api/chatApi"
 import { toast } from "../components/Toast"
+import { useChatStore } from "../store/chatStore"
 
 export const useFetchChatHistory = () => {
     const { setChatHistory } = useChatStore()

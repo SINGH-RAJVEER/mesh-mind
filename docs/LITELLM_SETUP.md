@@ -1,10 +1,12 @@
 # LiteLLM Proxy Setup Guide
 
+MeshMind is an LLM-agnostic chat application. This guide explains how to route chat and embedding requests through LiteLLM or any other OpenAI-compatible backend.
+
 This guide matches the variables defined in [.env.example](../.env.example).
 
 ## Variables used by the API
 
-Chat inference uses:
+Chat requests use:
 
 ```env
 LLM_MODEL=gpt-3.5-turbo
@@ -13,7 +15,7 @@ GROQ_API_KEY=your_llm_api_key
 
 For Docker Compose runs, you can omit `LLM_BASE_URL`. The API uses the internal LiteLLM service at `http://litellm:4000/v1` automatically.
 
-Embedding inference uses:
+Embedding requests use:
 
 ```env
 LLM_EMBEDDING_MODEL=text-embedding-004
@@ -37,8 +39,9 @@ FRONTEND_URL=http://localhost:5173
 
 ## How MeshMind uses them
 
-- [apps/api/src/utils/litellmManager.ts](apps/api/src/utils/litellmManager.ts) uses `GROQ_API_KEY` for chat completions.
-- [apps/api/src/utils/embeddingsManager.ts](apps/api/src/utils/embeddingsManager.ts) uses `GEMINI_API_KEY` for embeddings.
+- [apps/api/src/utils/litellmManager.ts](apps/api/src/utils/litellmManager.ts) sends chat completion requests to the configured OpenAI-compatible backend.
+- [apps/api/src/utils/embeddingsManager.ts](apps/api/src/utils/embeddingsManager.ts) sends embedding requests to the configured OpenAI-compatible backend.
+- `LLM_BASE_URL` controls where both clients send requests when explicitly set.
 - In Docker, both clients send requests to the internal `litellm` service by default.
 - The `/chat` route streams chunks to the browser as they arrive.
 
@@ -107,3 +110,4 @@ bun run dev
 
 - Only variable names from [.env.example](../.env.example) are referenced here.
 - If embeddings fail, chat still falls back to chronological PostgreSQL history.
+- If you are not using LiteLLM, point `LLM_BASE_URL` at any OpenAI-compatible provider or gateway that exposes chat and embeddings endpoints.

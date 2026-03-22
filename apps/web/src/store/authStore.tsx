@@ -1,4 +1,4 @@
-import { createSignal, createContext, onMount, useContext, type JSX } from "solid-js"
+import { createContext, createSignal, type JSX, onMount, useContext } from "solid-js"
 import authAPI from "../api/authAPI"
 
 interface User {

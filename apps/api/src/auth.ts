@@ -1,7 +1,7 @@
-import { betterAuth } from "better-auth/minimal"
-import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { db } from "@meshmind/database"
-import { google, github } from "better-auth/social-providers"
+import { drizzleAdapter } from "better-auth/adapters/drizzle"
+import { betterAuth } from "better-auth/minimal"
+import { github, google } from "better-auth/social-providers"
 import { ALLOWED_FRONTEND_ORIGINS, BACKEND_URL, FRONTEND_URL } from "./config"
 
 const authSecret = process.env.BETTER_AUTH_SECRET || "local-dev-super-secret"

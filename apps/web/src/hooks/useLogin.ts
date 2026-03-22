@@ -1,8 +1,8 @@
-import { createSignal } from "solid-js"
 import { useNavigate } from "@solidjs/router"
+import { createSignal } from "solid-js"
 import { loginUser } from "../api/authApi"
-import { useAuthStore } from "../store/authStore"
 import { toast } from "../components/Toast"
+import { useAuthStore } from "../store/authStore"
 
 export const useLogin = () => {
     const navigate = useNavigate()

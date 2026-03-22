@@ -1,4 +1,4 @@
-import { type JSX, createSignal, splitProps } from "solid-js"
+import { createSignal, type JSX, splitProps } from "solid-js"
 import { cn } from "./utils"
 
 export interface TooltipContentProps extends JSX.HTMLAttributes<HTMLDivElement> {

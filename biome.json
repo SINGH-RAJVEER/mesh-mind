@@ -1,43 +1,43 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.5/schema.json",
-  "files": {
-    "includes": ["**", "!**/dist", "!**/node_modules", "!**/.turbo"]
-  },
-  "linter": {
-    "enabled": true,
-    "rules": {
-      "recommended": true
-    }
-  },
-  "formatter": {
-    "enabled": true,
-    "indentStyle": "space",
-    "indentWidth": 4,
-    "lineWidth": 100
-  },
-  "javascript": {
-    "formatter": {
-      "quoteStyle": "double",
-      "trailingCommas": "es5",
-      "semicolons": "asNeeded",
-      "arrowParentheses": "always"
-    }
-  },
-  "overrides": [
-    {
-      "includes": ["**/*.css"],
-      "linter": {
+    "$schema": "https://biomejs.dev/schemas/2.4.5/schema.json",
+    "files": {
+        "includes": ["**", "!**/dist", "!**/node_modules", "!**/.turbo"]
+    },
+    "linter": {
+        "enabled": true,
         "rules": {
-          "suspicious": {
-            "noUnknownAtRules": "off"
-          }
+            "recommended": true
         }
-      }
+    },
+    "formatter": {
+        "enabled": true,
+        "indentStyle": "space",
+        "indentWidth": 4,
+        "lineWidth": 100
+    },
+    "javascript": {
+        "formatter": {
+            "quoteStyle": "double",
+            "trailingCommas": "es5",
+            "semicolons": "asNeeded",
+            "arrowParentheses": "always"
+        }
+    },
+    "overrides": [
+        {
+            "includes": ["**/*.css"],
+            "linter": {
+                "rules": {
+                    "suspicious": {
+                        "noUnknownAtRules": "off"
+                    }
+                }
+            }
+        }
+    ],
+    "css": {
+        "parser": {
+            "tailwindDirectives": true
+        }
     }
-  ],
-  "css": {
-    "parser": {
-      "tailwindDirectives": true
-    }
-  }
 }

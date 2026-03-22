@@ -1,11 +1,11 @@
+import { serve } from "@hono/node-server"
+import { healthCheck } from "@meshmind/database"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { logger } from "hono/logger"
-import { serve } from "@hono/node-server"
-import { chatbotRouter } from "./routes/chat"
-import { authRouter } from "./routes/auth"
-import { healthCheck } from "@meshmind/database"
 import { ALLOWED_FRONTEND_ORIGINS, isAllowedFrontendOrigin } from "./config"
+import { authRouter } from "./routes/auth"
+import { chatbotRouter } from "./routes/chat"
 
 const app = new Hono()
 const PORT = parseInt(process.env.PORT || "8000", 10)
@@ -28,7 +28,7 @@ app.route("/auth", authRouter)
 app.route("/chat", chatbotRouter)
 
 app.get("/", (c) => {
-    return c.json({ message: "MeshMind API" })
+    return c.json({ message: "MeshMind Chat API" })
 })
 
 app.get("/health", async (c) => {

@@ -1,5 +1,7 @@
 # Project Structure
 
+MeshMind is organized as an LLM-agnostic chat platform with a web client, an authenticated API, and shared database tooling.
+
 ## Applications
 
 ### `apps/api`
@@ -10,8 +12,8 @@
 - `src/routes/chat.ts` — chat streaming, history, and conversation deletion
 - `src/middleware/auth.ts` — authenticated user middleware
 - `src/services/embeddingsService.ts` — pgvector-backed semantic retrieval
-- `src/utils/litellmManager.ts` — chat completion streaming helper
-- `src/utils/embeddingsManager.ts` — embedding generation helper
+- `src/utils/litellmManager.ts` — OpenAI-compatible chat completion streaming helper
+- `src/utils/embeddingsManager.ts` — OpenAI-compatible embedding generation helper
 
 ### `apps/web`
 

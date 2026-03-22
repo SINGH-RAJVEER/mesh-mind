@@ -1,12 +1,12 @@
-import { createSignal, Show } from "solid-js"
 import { A } from "@solidjs/router"
-import { Heart, Github } from "lucide-solid"
-import { useRegister } from "../hooks/useRegister"
+import { Github } from "lucide-solid"
+import { createSignal, Show } from "solid-js"
 import authAPI from "../api/authAPI"
-import { Input } from "./ui/input"
-import { Button } from "./ui/button"
+import { useRegister } from "../hooks/useRegister"
 import ThemeToggle from "./ThemeToggle"
 import { toast } from "./Toast"
+import { Button } from "./ui/button"
+import { Input } from "./ui/input"
 
 const GoogleLogo = () => (
     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
@@ -77,12 +77,10 @@ function Register() {
             <div className="w-full max-w-md space-y-8">
                 {/* Header */}
                 <div className="text-center">
-                    <div className="flex justify-center mb-4">
-                        <Heart className="h-12 w-12 text-primary" />
-                    </div>
-                    <h2 className="text-3xl font-bold text-foreground">Create account</h2>
+                    <div className="mb-4 h-12 w-12 mx-auto rounded-md border border-border bg-muted" />
+                    <h2 className="text-3xl font-bold text-foreground">[Registration Header]</h2>
                     <p className="mt-2 text-muted-foreground">
-                        Start your journey to better mental wellness
+                        [Registration subheading placeholder]
                     </p>
                 </div>
 

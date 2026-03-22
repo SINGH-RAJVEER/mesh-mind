@@ -1,10 +1,10 @@
-import { Hono, type Context } from "hono"
+import { conversations, db, messages } from "@meshmind/database"
+import { and, desc, eq } from "drizzle-orm"
+import { type Context, Hono } from "hono"
 import { getCurrentUser } from "../middleware/auth"
-import { getSystemPrompt } from "../systemPrompt"
-import { db, conversations, messages } from "@meshmind/database"
-import { eq, and, desc } from "drizzle-orm"
-import litellmManager from "../utils/litellmManager"
 import embeddingsService from "../services/embeddingsService"
+import { getSystemPrompt } from "../systemPrompt"
+import litellmManager from "../utils/litellmManager"
 
 const chatbotRouter = new Hono()
 const sseHeaders = {

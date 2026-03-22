@@ -1,14 +1,13 @@
-import { createSignal, createEffect, For, Show, onMount } from "solid-js"
-import { Send, Trash2, Plus, LogOut, Loader, ChevronLeft, ChevronRight } from "lucide-solid"
-import { useFetchChatHistory, useSendMessageStream, useDeleteChat } from "../hooks/useChat"
+import { ChevronLeft, ChevronRight, Loader, LogOut, Plus, Send, Trash2 } from "lucide-solid"
+import { createEffect, createSignal, For, onMount, Show } from "solid-js"
+import { useDeleteChat, useFetchChatHistory, useSendMessageStream } from "../hooks/useChat"
 import { useLogout } from "../hooks/useLogout"
 import { useChatStore } from "../store/chatStore"
-import { Input } from "./ui/input"
-import { Button } from "./ui/button"
-import { Sidebar } from "./ui/sidebar"
 import MarkdownContent from "./MarkdownContent"
-import headerImg from "../assets/header.png"
 import ThemeToggle from "./ThemeToggle"
+import { Button } from "./ui/button"
+import { Input } from "./ui/input"
+import { Sidebar } from "./ui/sidebar"
 
 function Dashboard() {
     const { chatHistory, selectedConversation, setSelectedConversation, loading } = useChatStore()
@@ -125,14 +124,12 @@ function Dashboard() {
                         <button
                             type="button"
                             onClick={() => setSidebarCollapsed((prev) => !prev)}
-                            className="group relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-md transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            className="group relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-md border border-dashed border-border bg-muted/40 text-xs font-medium text-muted-foreground transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                             aria-label={sidebarCollapsed() ? "Expand sidebar" : "Collapse sidebar"}
                         >
-                            <img
-                                src={headerImg}
-                                alt="MeshMind Logo"
-                                className="h-8 w-auto object-contain transition-transform duration-200 group-hover:scale-95"
-                            />
+                            <span className="transition-transform duration-200 group-hover:scale-95">
+                                IMG
+                            </span>
                             <span className="absolute inset-0 flex items-center justify-center bg-background/85 text-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                                 {sidebarCollapsed() ? (
                                     <ChevronRight className="h-5 w-5" />
@@ -166,11 +163,14 @@ function Dashboard() {
                                 fallback={
                                     <div className="h-full flex items-center justify-center">
                                         <div className="text-center">
+                                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-border bg-muted/40 text-sm font-medium text-muted-foreground">
+                                                HEADER
+                                            </div>
                                             <p className="text-2xl font-semibold text-foreground mb-2">
-                                                Welcome to MeshMind
+                                                Placeholder Title
                                             </p>
                                             <p className="text-muted-foreground">
-                                                Start a new conversation to connect with support
+                                                Placeholder subtitle for the empty chat state
                                             </p>
                                         </div>
                                     </div>

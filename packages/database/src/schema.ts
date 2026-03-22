@@ -1,13 +1,13 @@
 import {
-    customType,
-    pgTable,
-    varchar,
-    uuid,
-    text,
     boolean,
-    timestamp,
+    customType,
     index,
+    pgTable,
+    text,
+    timestamp,
     uniqueIndex,
+    uuid,
+    varchar,
 } from "drizzle-orm/pg-core"
 
 const vector = customType<{

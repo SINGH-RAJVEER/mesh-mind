@@ -1,6 +1,6 @@
+import { fileURLToPath, URL } from "node:url"
 import { defineConfig } from "vite"
 import { solidPlugin } from "vite-plugin-solid"
-import { fileURLToPath, URL } from "node:url"
 
 export default defineConfig({
     envDir: fileURLToPath(new URL("../..", import.meta.url)),

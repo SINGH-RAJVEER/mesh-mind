@@ -1,6 +1,6 @@
-import { onMount } from "solid-js"
 import { useNavigate, useSearchParams } from "@solidjs/router"
 import { Loader } from "lucide-solid"
+import { onMount } from "solid-js"
 import { useAuthStore } from "../store/authStore"
 import { toast } from "./Toast"
 
