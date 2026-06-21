@@ -4,21 +4,8 @@ declare const process: {
     env: Record<string, string | undefined>
 }
 
-const DOCKER_LOCALHOSTS = new Set(["localhost", "127.0.0.1", "::1"])
-
 function resolvePostgresHost(): string {
-    const configuredHost = process.env.POSTGRES_HOST?.trim()
-    const runningInDocker = process.env.MESHMIND_RUNTIME === "docker"
-
-    if (!configuredHost) {
-        return runningInDocker ? "postgres" : "localhost"
-    }
-
-    if (runningInDocker && DOCKER_LOCALHOSTS.has(configuredHost)) {
-        return "postgres"
-    }
-
-    return configuredHost
+    return process.env.POSTGRES_HOST?.trim() || "localhost"
 }
 
 export default defineConfig({

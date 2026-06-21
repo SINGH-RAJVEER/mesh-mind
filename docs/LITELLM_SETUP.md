@@ -13,7 +13,7 @@ LLM_MODEL=gpt-3.5-turbo
 GROQ_API_KEY=your_llm_api_key
 ```
 
-For Docker Compose runs, you can omit `LLM_BASE_URL`. The API uses the internal LiteLLM service at `http://litellm:4000/v1` automatically.
+If you omit `LLM_BASE_URL`, the API uses `http://localhost:4000/v1`.
 
 Embedding requests use:
 
@@ -22,7 +22,7 @@ LLM_EMBEDDING_MODEL=text-embedding-004
 GEMINI_API_KEY=your_llm_api_key
 ```
 
-If you run the API outside Docker, the fallback LiteLLM URL is `http://localhost:4000/v1`.
+The fallback LiteLLM URL is `http://localhost:4000/v1`.
 
 Database and server variables remain:
 
@@ -42,7 +42,6 @@ FRONTEND_URL=http://localhost:5173
 - [apps/api/src/utils/litellmManager.ts](apps/api/src/utils/litellmManager.ts) sends chat completion requests to the configured OpenAI-compatible backend.
 - [apps/api/src/utils/embeddingsManager.ts](apps/api/src/utils/embeddingsManager.ts) sends embedding requests to the configured OpenAI-compatible backend.
 - `LLM_BASE_URL` controls where both clients send requests when explicitly set.
-- In Docker, both clients send requests to the internal `litellm` service by default.
 - The `/chat` route streams chunks to the browser as they arrive.
 
 ## LiteLLM proxy example
@@ -69,8 +68,6 @@ litellm --config config.yaml --port 4000
 ```
 
 Do not point `LLM_BASE_URL` at the MeshMind API itself. The API runs on port `8000`, while LiteLLM runs separately on port `4000`.
-
-The repository also includes a Compose-managed LiteLLM config at [docker/litellm/config.yaml](../docker/litellm/config.yaml) with aliases for `text-embedding-004` and `gpt-3.5-turbo`.
 
 ## Streaming verification
 

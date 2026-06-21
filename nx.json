@@ -1,0 +1,34 @@
+{
+    "$schema": "./node_modules/nx/schemas/nx-schema.json",
+    "namedInputs": {
+        "default": ["{projectRoot}/**/*", "sharedGlobals"],
+        "production": ["default", "!{projectRoot}/dist/**"],
+        "sharedGlobals": ["{workspaceRoot}/.env"]
+    },
+    "targetDefaults": {
+        "build": {
+            "dependsOn": ["^build"],
+            "inputs": ["production", "^production"],
+            "outputs": ["{projectRoot}/dist"]
+        },
+        "dev": {
+            "cache": false,
+            "continuous": true
+        },
+        "lint": {
+            "cache": false,
+            "dependsOn": ["^lint"]
+        },
+        "format": {
+            "cache": false,
+            "dependsOn": ["^format"]
+        },
+        "type-check": {
+            "dependsOn": ["^type-check"],
+            "inputs": ["production", "^production"]
+        },
+        "clean": {
+            "cache": false
+        }
+    }
+}

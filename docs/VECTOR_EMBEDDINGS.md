@@ -31,11 +31,9 @@ LLM_EMBEDDING_MODEL=text-embedding-004
 GEMINI_API_KEY=your_gemini_key
 ```
 
-For host-based local development, keep `POSTGRES_HOST=localhost`.
+For local development, keep `POSTGRES_HOST=localhost`.
 
-For Docker-based development, the API and database tooling automatically rewrite `localhost` to the Compose service name `postgres` when running inside a container. If you set a non-local database host explicitly, that value is preserved.
-
-For Docker-based development, the API reaches LiteLLM through the internal `litellm` service by default, so `LLM_BASE_URL` usually does not need to be set.
+If `LLM_BASE_URL` is omitted, the API uses `http://localhost:4000/v1`.
 
 ## Table shape
 
@@ -73,9 +71,7 @@ It also has:
 ## Useful commands
 
 ```bash
-docker compose -f docker/dev/docker-compose.dev.yml up -d postgres
 bun run --filter=@meshmind/database db:push
-./scripts/check-embeddings.sh
 ```
 
 ## Manual verification

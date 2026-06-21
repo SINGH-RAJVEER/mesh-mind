@@ -56,11 +56,7 @@ Auth table primary keys are UUIDs. Better Auth is configured to generate UUID id
 
 ## Local setup
 
-1. Start PostgreSQL:
-
-```bash
-docker compose -f docker/dev/docker-compose.dev.yml up -d postgres
-```
+1. Start PostgreSQL locally with the pgvector extension enabled.
 
 1. Apply the schema:
 
@@ -96,7 +92,7 @@ Email/password flows use the Better Auth endpoints under `/auth`:
 - Authenticated API requests rely on the Better Auth session cookie, so the API must allow credentialed CORS requests from the active frontend origin.
 - Chat streaming requests must use `/chat` without a trailing slash because the Hono router is mounted at `/chat` and the stream handler is registered on `/` within that router.
 - `FRONTEND_URL` can be a comma-separated list of trusted frontend origins when you need to support multiple dev hosts, for example `http://localhost:5173,http://localhost:3000`.
-- Local development accepts both `http://localhost:5173` and `http://localhost:3000` by default to cover direct Vite usage and the Docker web service.
+- Local development accepts both `http://localhost:5173` and `http://localhost:3000` by default.
 
 ## Notes
 

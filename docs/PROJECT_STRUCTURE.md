@@ -2,6 +2,8 @@
 
 MeshMind is organized as an LLM-agnostic chat platform with a web client, an authenticated API, and shared database tooling.
 
+The repository is a Bun workspace orchestrated by Nx. Root commands such as `bun run build`, `bun run lint`, `bun run type-check`, and `bun run dev` delegate to Nx, which discovers package scripts from `apps/*` and `packages/*` and applies the target dependency rules in `nx.json`.
+
 ## Applications
 
 ### `apps/api`
@@ -54,7 +56,7 @@ MeshMind stores all persisted data in PostgreSQL:
 ## Performance notes
 
 - Drizzle indexes are defined in `packages/database/src/schema.ts`
-- `message_embeddings` also has an HNSW index created by `docker/init-pgvector.sql`
+- `message_embeddings` uses an HNSW index for pgvector similarity search
 - chat history uses relational queries first and semantic similarity when embeddings are available
 
 ## Environment variables
@@ -73,4 +75,3 @@ Related setup guides:
 
 - [AUTHENTICATION.md](./AUTHENTICATION.md)
 - [VECTOR_EMBEDDINGS.md](./VECTOR_EMBEDDINGS.md)
-- [DOCKER_SETUP.md](./DOCKER_SETUP.md)

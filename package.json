@@ -8,19 +8,19 @@
         "packages/*"
     ],
     "scripts": {
-        "dev": "turbo run dev --ui=tui",
-        "build": "turbo run build",
-        "lint": "turbo run lint",
-        "format": "turbo run format",
-        "type-check": "turbo run type-check",
-        "clean": "turbo run clean && rm -rf node_modules"
+        "dev": "nx run-many -t dev --parallel=10",
+        "build": "nx run-many -t build",
+        "lint": "nx run-many -t lint",
+        "format": "nx run-many -t format",
+        "type-check": "nx run-many -t type-check",
+        "clean": "nx run-many -t clean && rm -rf node_modules"
     },
     "devDependencies": {
         "@biomejs/biome": "^2.4.4",
         "@vitejs/plugin-react-swc": "^4.2.3",
         "babel-plugin-react-compiler": "^1.0.0",
         "concurrently": "^8.2.2",
-        "turbo": "^2.0.0",
+        "nx": "^21.6.0",
         "typescript": "^5.6.0"
     }
 }

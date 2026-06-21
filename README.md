@@ -7,7 +7,7 @@ MeshMind is an LLM-agnostic AI chat application built as a Bun monorepo. It conn
 - API: Hono + Better Auth + Drizzle ORM + OpenAI-compatible LLM routing
 - Web: SolidJS + Vite
 - Database: PostgreSQL 16 + pgvector
-- Tooling: Bun + Turbo + Biome
+- Tooling: Bun + Nx + Biome
 
 ## Workspace layout
 
@@ -15,7 +15,6 @@ MeshMind is an LLM-agnostic AI chat application built as a Bun monorepo. It conn
 - `apps/web` — SolidJS frontend for authenticated AI chat
 - `packages/database` — Drizzle schema, PostgreSQL connection, database utilities
 - `packages/types` — shared TypeScript types
-- `docker` — local and production containers
 - `docs` — setup and architecture notes
 
 ## Database model
@@ -53,11 +52,7 @@ All persisted application data lives in PostgreSQL:
    cp .env.example .env
    ```
 
-3. Start PostgreSQL locally with Docker:
-
-   ```bash
-   docker compose -f docker/dev/docker-compose.dev.yml up -d postgres
-   ```
+3. Start PostgreSQL locally with pgvector enabled.
 
 4. Apply the Drizzle schema:
 
@@ -78,9 +73,7 @@ just install
 just dev
 just build
 just type-check
-just postgres-up
 just db-push
-just docker-dev-up
 ```
 
 ## Environment notes
@@ -97,6 +90,6 @@ Important backend variables:
 - `LLM_EMBEDDING_MODEL`
 - `LLM_BASE_URL`
 
-Docker Compose wires the API to the internal `litellm` service automatically, so `LLM_BASE_URL` usually does not need to be set in `.env` for containerized runs.
+If `LLM_BASE_URL` is omitted, the API defaults to `http://localhost:4000/v1`.
 
-See [docs/DOCKER_SETUP.md](docs/DOCKER_SETUP.md), [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md), and [docs/VECTOR_EMBEDDINGS.md](docs/VECTOR_EMBEDDINGS.md) for details.
+See [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md), [docs/LITELLM_SETUP.md](docs/LITELLM_SETUP.md), and [docs/VECTOR_EMBEDDINGS.md](docs/VECTOR_EMBEDDINGS.md) for details.

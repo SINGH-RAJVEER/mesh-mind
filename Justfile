@@ -4,10 +4,6 @@ set export := true
 
 alias i := install
 alias tc := type-check
-alias ddu := docker-dev-up
-alias ddd := docker-dev-down
-alias dpu := docker-prod-up
-alias dpd := docker-prod-down
 
 @default:
   just --list
@@ -71,66 +67,3 @@ db-push:
 
 db-studio:
   bun run --filter=@meshmind/database db:studio
-
-postgres-up:
-  docker compose -f docker/dev/docker-compose.dev.yml up -d postgres
-
-postgres-down:
-  docker compose -f docker/dev/docker-compose.dev.yml stop postgres
-
-docker-dev-up:
-  docker compose -f docker/dev/docker-compose.dev.yml up --build
-
-docker-dev-up-d:
-  docker compose -f docker/dev/docker-compose.dev.yml up --build -d
-
-docker-dev-down:
-  docker compose -f docker/dev/docker-compose.dev.yml down
-
-docker-dev-down-v:
-  docker compose -f docker/dev/docker-compose.dev.yml down -v
-
-docker-dev-logs:
-  docker compose -f docker/dev/docker-compose.dev.yml logs -f
-
-docker-dev-api-logs:
-  docker compose -f docker/dev/docker-compose.dev.yml logs -f api
-
-docker-dev-web-logs:
-  docker compose -f docker/dev/docker-compose.dev.yml logs -f web
-
-docker-dev-db-logs:
-  docker compose -f docker/dev/docker-compose.dev.yml logs -f postgres
-
-docker-dev-build:
-  docker compose -f docker/dev/docker-compose.dev.yml build api web
-
-docker-dev-run service:
-  docker compose -f docker/dev/docker-compose.dev.yml run --rm {{service}}
-
-docker-dev-run-ports service:
-  docker compose -f docker/dev/docker-compose.dev.yml run --rm --service-ports {{service}}
-
-docker-workspace-dev:
-  docker compose -f docker/dev/docker-compose.dev.yml --profile commands up workspace-dev
-
-docker-prod-up:
-  docker compose -f docker/prod/docker-compose.prod.yml up --build -d
-
-docker-prod-down:
-  docker compose -f docker/prod/docker-compose.prod.yml down
-
-docker-prod-down-v:
-  docker compose -f docker/prod/docker-compose.prod.yml down -v
-
-docker-prod-logs:
-  docker compose -f docker/prod/docker-compose.prod.yml logs -f
-
-docker-prod-api-logs:
-  docker compose -f docker/prod/docker-compose.prod.yml logs -f api
-
-docker-prod-web-logs:
-  docker compose -f docker/prod/docker-compose.prod.yml logs -f web
-
-docker-prod-build:
-  docker compose -f docker/prod/docker-compose.prod.yml build api web

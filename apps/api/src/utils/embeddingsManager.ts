@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs"
 import OpenAI from "openai"
 
 const stripTrailingSlash = (value: string) => value.replace(/\/+$/, "")
@@ -10,9 +9,7 @@ const resolveLlmBaseUrl = () => {
         return stripTrailingSlash(configuredValue)
     }
 
-    const runningInDocker = process.env.MESHMIND_RUNTIME === "docker" || existsSync("/.dockerenv")
-
-    return runningInDocker ? "http://litellm:4000/v1" : "http://localhost:4000/v1"
+    return "http://localhost:4000/v1"
 }
 
 const toErrorMessage = (err: unknown, baseURL: string) => {
