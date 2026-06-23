@@ -1,4 +1,4 @@
-# MeshMind
+# MeshMind - Universal LLM Chat Interface
 
 MeshMind is an LLM-agnostic AI chat application built as a Bun monorepo. It connects to chat and embedding models through LiteLLM or any other OpenAI-compatible endpoint, while PostgreSQL, Drizzle, and pgvector handle persistence and semantic retrieval.
 
@@ -11,11 +11,19 @@ MeshMind is an LLM-agnostic AI chat application built as a Bun monorepo. It conn
 
 ## Workspace layout
 
-- `apps/api` — Hono API and auth endpoints
-- `apps/web` — SolidJS frontend for authenticated AI chat
-- `packages/database` — Drizzle schema, PostgreSQL connection, database utilities
-- `packages/types` — shared TypeScript types
-- `docs` — setup and architecture notes
+- `apps/api` - Hono API and auth endpoints
+- `apps/web` - SolidJS frontend for authenticated AI chat
+- `packages/database` - Drizzle schema, PostgreSQL connection, database utilities
+- `packages/types` - shared TypeScript types
+- `docs` - setup and architecture notes
+
+## Features
+
+- Any Model, One Interface: connect to OpenAI-compatible endpoints via LiteLLM and switch providers easily.
+- Streaming Chat UX: receive real-time assistant responses through Server-Sent Events.
+- Authenticated Sessions: Better Auth handles email/password and OAuth-backed sessions.
+- Semantic Retrieval: pgvector stores message embeddings for relevant conversation context.
+- Local Dev Stack: Nix devenv starts PostgreSQL, applies schema changes, and runs the API and web app.
 
 ## Database model
 
@@ -34,7 +42,7 @@ All persisted application data lives in PostgreSQL:
 ## Prerequisites
 
 - Bun
-- PostgreSQL 16 with pgvector
+- Nix devenv for the full local stack
 - LiteLLM or another OpenAI-compatible endpoint
 - Gemini API key if using `text-embedding-004`
 
@@ -66,7 +74,7 @@ All persisted application data lives in PostgreSQL:
    bun run --filter=@meshmind/database db:push
    ```
 
-5. Start the apps:
+5. Start the apps without the devenv-managed database:
 
    ```bash
    bun run dev
@@ -98,4 +106,14 @@ Important backend variables:
 
 If `LLM_BASE_URL` is omitted, the API defaults to `http://localhost:4000/v1`.
 
-See [docs/NIX_DEVENV.md](docs/NIX_DEVENV.md), [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md), [docs/LITELLM_SETUP.md](docs/LITELLM_SETUP.md), and [docs/VECTOR_EMBEDDINGS.md](docs/VECTOR_EMBEDDINGS.md) for details.
+## Documentation
+
+- [Project Structure](docs/PROJECT_STRUCTURE.md) - Architecture, scripts, and services
+- [Nix Devenv](docs/NIX_DEVENV.md) - Local development stack
+- [LiteLLM Setup](docs/LITELLM_SETUP.md) - LLM provider configuration and environment setup
+- [Authentication](docs/AUTHENTICATION.md) - Auth system, OAuth, and API endpoints
+- [Vector Embeddings](docs/VECTOR_EMBEDDINGS.md) - Semantic retrieval with pgvector
+
+## License
+
+MeshMind is open-source under the [MIT License](LICENSE).

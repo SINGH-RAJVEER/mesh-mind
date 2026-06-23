@@ -12,22 +12,22 @@ Local dev preview is managed by Nix devenv. `just dev` starts PostgreSQL with pg
 
 ### `apps/api`
 
-- `src/main.ts` — Hono server bootstrap and health endpoint
-- `src/auth.ts` — Better Auth configuration backed by Drizzle
-- `src/routes/auth.ts` — auth route mounting and profile endpoint
-- `src/routes/chat.ts` — chat streaming, history, and conversation deletion
-- `src/middleware/auth.ts` — authenticated user middleware
-- `src/services/embeddingsService.ts` — pgvector-backed semantic retrieval
-- `src/utils/litellmManager.ts` — OpenAI-compatible chat completion streaming helper
-- `src/utils/embeddingsManager.ts` — OpenAI-compatible embedding generation helper
+- `src/main.ts` - Hono server bootstrap and health endpoint
+- `src/auth.ts` - Better Auth configuration backed by Drizzle
+- `src/routes/auth.ts` - auth route mounting and profile endpoint
+- `src/routes/chat.ts` - chat streaming, history, and conversation deletion
+- `src/middleware/auth.ts` - authenticated user middleware
+- `src/services/embeddingsService.ts` - pgvector-backed semantic retrieval
+- `src/utils/litellmManager.ts` - OpenAI-compatible chat completion streaming helper
+- `src/utils/embeddingsManager.ts` - OpenAI-compatible embedding generation helper
 
 ### `apps/web`
 
-- `src/components` — UI screens and reusable primitives
-- `src/components/ui/sidebar.tsx` — branded sidebar header with logo-first expand and collapse affordance
-- `src/hooks` — auth and chat hooks
-- `src/store` — client state
-- `src/api` — frontend API clients
+- `src/components` - UI screens and reusable primitives
+- `src/components/ui/sidebar.tsx` - branded sidebar header with logo-first expand and collapse affordance
+- `src/hooks` - auth and chat hooks
+- `src/store` - client state
+- `src/api` - frontend API clients
 - frontend UI uses Solid-specific packages, including `@solidjs/router` and `lucide-solid`
 
 ## Packages
@@ -36,10 +36,10 @@ Local dev preview is managed by Nix devenv. `just dev` starts PostgreSQL with pg
 
 Drizzle owns the PostgreSQL schema and connection layer.
 
-- `src/schema.ts` — Drizzle table definitions for auth, chat, and embeddings
-- `src/connection.ts` — shared PostgreSQL client and health helpers
-- `src/index.ts` — public exports for the API
-- `drizzle.config.ts` — Drizzle Kit configuration
+- `src/schema.ts` - Drizzle table definitions for auth, chat, and embeddings
+- `src/connection.ts` - shared PostgreSQL client and health helpers
+- `src/index.ts` - public exports for the API
+- `drizzle.config.ts` - Drizzle Kit configuration
 
 ### `packages/types`
 
@@ -62,6 +62,28 @@ MeshMind stores all persisted data in PostgreSQL:
 - Drizzle indexes are defined in `packages/database/src/schema.ts`
 - `message_embeddings` uses an HNSW index for pgvector similarity search
 - chat history uses relational queries first and semantic similarity when embeddings are available
+
+## Code quality
+
+All packages use Biome for linting and formatting through the root `biome.json`.
+
+```bash
+bun run lint
+bun run format
+```
+
+## Build and development
+
+```bash
+bun run dev
+bun run build
+bun run type-check
+bun run lint
+bun run format
+bun run clean
+```
+
+Use `just dev` for the full local preview with PostgreSQL and pgvector managed by devenv.
 
 ## Environment variables
 
