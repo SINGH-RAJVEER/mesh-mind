@@ -3,7 +3,7 @@ import OpenAI from "openai"
 const stripTrailingSlash = (value: string) => value.replace(/\/+$/, "")
 
 const resolveLlmBaseUrl = () => {
-    const configuredValue = process.env.LLM_BASE_URL?.trim()
+    const configuredValue = process.env["LLM_BASE_URL"]?.trim()
 
     if (configuredValue) {
         return stripTrailingSlash(configuredValue)
@@ -30,10 +30,10 @@ class EmbeddingsManager {
     private baseURL: string
 
     constructor() {
-        const apiKey = process.env.GEMINI_API_KEY || "not-needed"
+        const apiKey = process.env["GEMINI_API_KEY"] || "not-needed"
         const baseURL = resolveLlmBaseUrl()
 
-        this.embeddingModel = process.env.LLM_EMBEDDING_MODEL || "text-embedding-004"
+        this.embeddingModel = process.env["LLM_EMBEDDING_MODEL"] || "text-embedding-004"
 
         this.baseURL = baseURL
 
@@ -61,8 +61,10 @@ class EmbeddingsManager {
                 input: text,
             })
 
-            if (response.data && response.data.length > 0) {
-                return response.data[0].embedding
+            const embedding = response.data[0]
+
+            if (embedding) {
+                return embedding.embedding
             }
 
             throw new Error("No embedding data received")

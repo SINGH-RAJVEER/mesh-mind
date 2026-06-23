@@ -4,7 +4,7 @@ import { betterAuth } from "better-auth/minimal"
 import { github, google } from "better-auth/social-providers"
 import { ALLOWED_FRONTEND_ORIGINS, BACKEND_URL, FRONTEND_URL } from "./config"
 
-const authSecret = process.env.BETTER_AUTH_SECRET || "local-dev-super-secret"
+const authSecret = process.env["BETTER_AUTH_SECRET"] || "local-dev-super-secret"
 
 const auth = betterAuth({
     database: drizzleAdapter(db, { provider: "pg", usePlural: true }),
@@ -30,12 +30,12 @@ const auth = betterAuth({
 
     plugins: [
         google({
-            clientId: process.env.GOOGLE_CLIENT_ID || "",
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+            clientId: process.env["GOOGLE_CLIENT_ID"] || "",
+            clientSecret: process.env["GOOGLE_CLIENT_SECRET"] || "",
         }),
         github({
-            clientId: process.env.GITHUB_CLIENT_ID || "",
-            clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
+            clientId: process.env["GITHUB_CLIENT_ID"] || "",
+            clientSecret: process.env["GITHUB_CLIENT_SECRET"] || "",
         }),
     ],
 

@@ -8,7 +8,7 @@ import { authRouter } from "./routes/auth"
 import { chatbotRouter } from "./routes/chat"
 
 const app = new Hono()
-const PORT = parseInt(process.env.PORT || "8000", 10)
+const PORT = parseInt(process.env["PORT"] || "8000", 10)
 
 app.use(
     "*",
@@ -44,8 +44,8 @@ app.get("/health", async (c) => {
     })
 })
 
-const effectiveLlmModel = process.env.LLM_MODEL || "gpt-3.5-turbo"
-const effectiveEmbeddingModel = process.env.LLM_EMBEDDING_MODEL || "text-embedding-004"
+const effectiveLlmModel = process.env["LLM_MODEL"] || "gpt-3.5-turbo"
+const effectiveEmbeddingModel = process.env["LLM_EMBEDDING_MODEL"] || "text-embedding-004"
 
 serve(
     {

@@ -3,7 +3,7 @@ import OpenAI from "openai"
 const stripTrailingSlash = (value: string) => value.replace(/\/+$/, "")
 
 const resolveLlmBaseUrl = () => {
-    const configuredValue = process.env.LLM_BASE_URL?.trim()
+    const configuredValue = process.env["LLM_BASE_URL"]?.trim()
 
     if (configuredValue) {
         return stripTrailingSlash(configuredValue)
@@ -29,9 +29,9 @@ class LiteLLMManager {
     private baseURL: string
 
     constructor() {
-        const apiKey = process.env.GROQ_API_KEY || "not-needed"
+        const apiKey = process.env["GROQ_API_KEY"] || "not-needed"
         const baseURL = resolveLlmBaseUrl()
-        const defaultModel = process.env.LLM_MODEL || "gpt-3.5-turbo"
+        const defaultModel = process.env["LLM_MODEL"] || "gpt-3.5-turbo"
 
         this.baseURL = baseURL
 
@@ -56,7 +56,7 @@ class LiteLLMManager {
         userMessage: string,
         systemPrompt: string
     ): AsyncGenerator<string, void, unknown> {
-        const model = process.env.LLM_MODEL || "gpt-3.5-turbo"
+        const model = process.env["LLM_MODEL"] || "gpt-3.5-turbo"
 
         try {
             const stream = await this.client.chat.completions.create({
@@ -94,7 +94,7 @@ class LiteLLMManager {
      * Useful for fallback or when streaming is not needed
      */
     async getChatResponse(userMessage: string, systemPrompt: string): Promise<string> {
-        const model = process.env.LLM_MODEL || "gpt-3.5-turbo"
+        const model = process.env["LLM_MODEL"] || "gpt-3.5-turbo"
 
         try {
             const response = await this.client.chat.completions.create({

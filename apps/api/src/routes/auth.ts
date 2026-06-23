@@ -13,7 +13,7 @@ authRouter.get("/oauth/url/:provider", async (c: Context) => {
     try {
         // BetterAuth OAuth authorization endpoint
         const redirectTo = c.req.query("redirect_to") || "/"
-        const authURL = `${process.env.BACKEND_URL || "http://localhost:8000"}/auth/oauth/authorize/${provider}?redirect_to=${encodeURIComponent(redirectTo)}`
+        const authURL = `${process.env["BACKEND_URL"] || "http://localhost:8000"}/auth/oauth/authorize/${provider}?redirect_to=${encodeURIComponent(redirectTo)}`
         return c.json({ authURL, provider })
     } catch (_err) {
         return c.json({ error: "Failed to get OAuth URL" }, 500)

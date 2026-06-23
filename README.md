@@ -52,9 +52,15 @@ All persisted application data lives in PostgreSQL:
    cp .env.example .env
    ```
 
-3. Start PostgreSQL locally with pgvector enabled.
+3. Start the full local dev preview:
 
-4. Apply the Drizzle schema:
+   ```bash
+   just dev
+   ```
+
+   This starts PostgreSQL with pgvector, applies the Drizzle schema, and runs the API and web app.
+
+4. For manual database changes, apply the Drizzle schema:
 
    ```bash
    bun run --filter=@meshmind/database db:push
@@ -92,4 +98,4 @@ Important backend variables:
 
 If `LLM_BASE_URL` is omitted, the API defaults to `http://localhost:4000/v1`.
 
-See [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md), [docs/LITELLM_SETUP.md](docs/LITELLM_SETUP.md), and [docs/VECTOR_EMBEDDINGS.md](docs/VECTOR_EMBEDDINGS.md) for details.
+See [docs/NIX_DEVENV.md](docs/NIX_DEVENV.md), [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md), [docs/LITELLM_SETUP.md](docs/LITELLM_SETUP.md), and [docs/VECTOR_EMBEDDINGS.md](docs/VECTOR_EMBEDDINGS.md) for details.

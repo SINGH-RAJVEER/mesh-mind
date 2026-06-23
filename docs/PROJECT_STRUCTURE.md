@@ -4,6 +4,10 @@ MeshMind is organized as an LLM-agnostic chat platform with a web client, an aut
 
 The repository is a Bun workspace orchestrated by Nx. Root commands such as `bun run build`, `bun run lint`, `bun run type-check`, and `bun run dev` delegate to Nx, which discovers package scripts from `apps/*` and `packages/*` and applies the target dependency rules in `nx.json`.
 
+TypeScript compiler defaults live in the root `tsconfig.json`. App and package TypeScript configs extend it and keep only their local JSX and output settings. The shared config owns strictness, path aliases, bundler-style resolution defaults, and additional safety checks such as unchecked indexed access and side-effect import validation.
+
+Local dev preview is managed by Nix devenv. `just dev` starts PostgreSQL with pgvector, syncs the Drizzle schema, and runs the API and web app through the processes defined in `devenv.nix`.
+
 ## Applications
 
 ### `apps/api`
@@ -74,4 +78,5 @@ POSTGRES_PASSWORD=your_password
 Related setup guides:
 
 - [AUTHENTICATION.md](./AUTHENTICATION.md)
+- [NIX_DEVENV.md](./NIX_DEVENV.md)
 - [VECTOR_EMBEDDINGS.md](./VECTOR_EMBEDDINGS.md)

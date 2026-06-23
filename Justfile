@@ -12,7 +12,7 @@ install:
   bun install
 
 dev:
-  bun run dev
+    devenv up
 
 build:
   bun run build

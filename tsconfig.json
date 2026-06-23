@@ -1,0 +1,39 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "useDefineForClassFields": true,
+        "module": "ESNext",
+        "lib": ["ESNext", "DOM", "DOM.Iterable"],
+        "skipLibCheck": true,
+
+        "moduleResolution": "bundler",
+        "allowImportingTsExtensions": true,
+        "verbatimModuleSyntax": true,
+        "esModuleInterop": true,
+        "resolveJsonModule": true,
+        "moduleDetection": "force",
+        "downlevelIteration": true,
+        "allowSyntheticDefaultImports": true,
+        "forceConsistentCasingInFileNames": true,
+        "noEmit": true,
+
+        "strict": true,
+
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["./apps/*"],
+            "@pkg/*": ["./packages/*"]
+        },
+
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "allowUnusedLabels": false,
+        "noUncheckedSideEffectImports": true,
+        "noFallthroughCasesInSwitch": true,
+        "allowUnreachableCode": false,
+
+        "noUncheckedIndexedAccess": true,
+        "noPropertyAccessFromIndexSignature": true,
+        "erasableSyntaxOnly": true
+    }
+}

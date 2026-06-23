@@ -86,6 +86,10 @@ const storeChat = async (
         })
         .returning()
 
+    if (!message) {
+        throw new Error("Failed to store chat message")
+    }
+
     // Store embeddings asynchronously (don't await to avoid blocking)
     embeddingsService
         .storeMessageEmbeddings(message.id, conversationId, userId, userMessage, botResponse)
@@ -248,14 +252,18 @@ chatbotRouter.get("/history", getCurrentUser, async (c: Context) => {
         > = {}
 
         messageHistory.forEach((row) => {
-            if (!conversationsMap[row.conversationId]) {
-                conversationsMap[row.conversationId] = {
+            let conversation = conversationsMap[row.conversationId]
+
+            if (!conversation) {
+                conversation = {
                     id: row.conversationId,
                     messages: [],
                     timestamp: row.timestamp,
                 }
+                conversationsMap[row.conversationId] = conversation
             }
-            conversationsMap[row.conversationId].messages.push({
+
+            conversation.messages.push({
                 id: row.id,
                 user_message: row.userMessage,
                 bot_response: row.botResponse,
@@ -277,6 +285,10 @@ chatbotRouter.delete("/:conversationId", getCurrentUser, async (c: Context) => {
         if (!user) return c.json({ detail: "Unauthorized" }, 401)
 
         const { conversationId } = c.req.param()
+
+        if (!conversationId) {
+            return c.json({ detail: "conversationId is required" }, 400)
+        }
 
         // Delete embeddings first
         await embeddingsService.deleteConversationEmbeddings(conversationId).catch((err) => {

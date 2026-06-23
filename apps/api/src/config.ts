@@ -20,17 +20,17 @@ const parseOrigins = (value?: string) => {
         .map(normalizeOrigin)
 }
 
-const configuredFrontendOrigins = parseOrigins(process.env.FRONTEND_URL)
+const configuredFrontendOrigins = parseOrigins(process.env["FRONTEND_URL"])
 
 // Authentication
-export const AUTH_SECRET = process.env.BETTER_AUTH_SECRET || "local-dev-super-secret"
+export const AUTH_SECRET = process.env["BETTER_AUTH_SECRET"] || "local-dev-super-secret"
 
 // URLs
 export const ALLOWED_FRONTEND_ORIGINS = Array.from(
     new Set([...configuredFrontendOrigins, ...DEFAULT_FRONTEND_ORIGINS])
 )
 export const FRONTEND_URL = configuredFrontendOrigins[0] || DEFAULT_FRONTEND_ORIGINS[0]
-export const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000"
+export const BACKEND_URL = process.env["BACKEND_URL"] || "http://localhost:8000"
 
 export const isAllowedFrontendOrigin = (origin?: string | null) => {
     if (!origin) {
