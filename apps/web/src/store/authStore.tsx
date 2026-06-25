@@ -1,5 +1,5 @@
 import { createContext, createSignal, type JSX, onMount, useContext } from "solid-js"
-import authAPI from "../api/authAPI"
+import authAPI from "../api/authApi"
 
 interface User {
     id: string

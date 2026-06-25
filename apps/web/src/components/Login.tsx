@@ -1,7 +1,7 @@
 import { A } from "@solidjs/router"
 import { Github } from "lucide-solid"
 import { createSignal, Show } from "solid-js"
-import authAPI from "../api/authAPI"
+import authAPI from "../api/authApi"
 import { useLogin } from "../hooks/useLogin"
 import ThemeToggle from "./ThemeToggle"
 import { toast } from "./Toast"
